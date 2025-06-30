@@ -1,0 +1,13 @@
+add_requires("gtest")
+
+target("test")
+    set_kind("binary")
+    add_rules("mode.asan", "mode.tsan")
+    add_packages("gtest")
+    add_includedirs("../include")
+    add_files("main.cpp", "../src/*.cpp")
+    remove_files("../src/main.cpp")
+    set_warnings("all", "error")
+    add_deps("sysifus")
+    add_rules("c++.unity_build")
+    set_languages("c++20")

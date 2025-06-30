@@ -1,0 +1,3 @@
+[submodule "sysifus"]
+	path = sysifus
+	url = git@github.com:P1X3R/sysifus.git
