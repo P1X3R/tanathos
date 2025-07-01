@@ -19,7 +19,7 @@ struct ChessBoard {
     uint32_t compressed : 4;
   } castlingRights;
 
-  auto getFlat(const bool forWhites) -> uint64_t {
+  [[nodiscard]] auto getFlat(const bool forWhites) const -> uint64_t {
     const std::array<uint64_t, KING + 1> &color =
         forWhites ? this->whites : this->blacks;
 
