@@ -14,6 +14,7 @@ struct MoveCTX {
         promotion = Piece::NOTHING;
 };
 
+// For only one color
 class MoveGenerator {
 public:
   std::vector<MoveCTX> pseudoLegal, legal;
@@ -23,4 +24,10 @@ public:
 
 private:
   [[nodiscard]] auto isKingInCheck() const -> bool;
+
+  // Updates castling rights based on path obstruction only.
+  // Assumes other castling conditions (king/rook haven't moved,
+  // king not in check) are handled elsewhere.
+  static void updateCastlingRights(ChessBoard &board, uint64_t enemyFlat,
+                                   bool forWhites, uint64_t enemyAttacks);
 };

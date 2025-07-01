@@ -5,16 +5,17 @@
 #include <bit>
 #include <cstdint>
 
-static void appendContext(MoveCTX &ctx, const bool forWhites,
-                          const std::array<uint64_t, Piece::KING + 1> &enemyColor,
-                          const uint64_t enemyFlat,
-                          std::vector<MoveCTX> &pseudoLegal,
-                          const uint32_t enPassantSquare) {
+static void
+appendContext(MoveCTX &ctx, const bool forWhites,
+              const std::array<uint64_t, Piece::KING + 1> &enemyColor,
+              const uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
+              const uint32_t enPassantSquare) {
   const uint64_t toBit = 1ULL << ctx.to;
   ctx.capturedSquare = ctx.to;
 
   if ((enemyFlat & toBit) != 0) {
-    for (int enemyType = Piece::PAWN; enemyType <= Piece::KING; enemyType++) {
+    for (uint32_t enemyType = Piece::PAWN; enemyType <= Piece::KING;
+         enemyType++) {
       if ((enemyColor[enemyType] & toBit) != 0) {
         ctx.captured = static_cast<Piece>(enemyType);
         break;
@@ -36,7 +37,8 @@ static void appendContext(MoveCTX &ctx, const bool forWhites,
   const int8_t promotionRank = forWhites ? 7 : 0;
   if (ctx.original == Piece::PAWN && toRank == promotionRank) {
     // Generate promotion moves for Knight, Bishop, Rook, Queen
-    for (int promotion = Piece::KNIGHT; promotion <= Piece::QUEEN; promotion++) {
+    for (uint32_t promotion = Piece::KNIGHT; promotion <= Piece::QUEEN;
+         promotion++) {
       ctx.promotion = static_cast<Piece>(promotion);
       pseudoLegal.push_back(ctx);
     }
@@ -46,7 +48,7 @@ static void appendContext(MoveCTX &ctx, const bool forWhites,
 }
 
 void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
-                                        bool forWhites) {
+                                        const bool forWhites) {
   const std::array<uint64_t, Piece::KING + 1> &color =
       forWhites ? board.whites : board.blacks;
   const std::array<uint64_t, Piece::KING + 1> &enemyColor =
@@ -55,7 +57,7 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   const uint64_t flat = board.getFlat(forWhites);
   const uint64_t enemyFlat = board.getFlat(!forWhites);
 
-  for (int type = Piece::PAWN; type <= Piece::KING; type++) {
+  for (uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
     uint64_t typeBitboard = color[type];
 
     while (typeBitboard != 0) {
@@ -85,5 +87,37 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
 
       typeBitboard &= typeBitboard - 1;
     }
+  }
+}
+
+void MoveGenerator::updateCastlingRights(ChessBoard &board,
+                                         const uint64_t enemyFlat,
+                                         const bool forWhites,
+                                         const uint64_t enemyAttacks) {
+  const uint64_t blockedSquares = enemyAttacks | enemyFlat;
+
+  struct {
+    uint64_t kingSide;
+    uint64_t queenSide;
+  } kingsPath = {
+      .kingSide = (1ULL << BoardSquare::F1) | (1ULL << BoardSquare::G1) |
+                  (1ULL << BoardSquare::E1),
+
+      .queenSide = (1ULL << BoardSquare::D1) | (1ULL << BoardSquare::C1) |
+                   (1ULL << BoardSquare::E1),
+  };
+
+  const uint32_t rankShifting =
+      (BOARD_AREA - BOARD_LENGTH) * static_cast<uint32_t>(!forWhites);
+  kingsPath.kingSide <<= rankShifting;
+  kingsPath.queenSide <<= rankShifting;
+
+  if ((kingsPath.kingSide & blockedSquares) != 0) {
+    (forWhites ? board.castlingRights.whiteKingSide
+               : board.castlingRights.blackKingSide) = false;
+  }
+  if ((kingsPath.queenSide & blockedSquares) != 0) {
+    (forWhites ? board.castlingRights.whiteQueenSide
+               : board.castlingRights.blackQueenSide) = false;
   }
 }
