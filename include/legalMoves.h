@@ -30,4 +30,6 @@ private:
   // king not in check) are handled elsewhere.
   static void updateCastlingRights(ChessBoard &board, uint64_t enemyFlat,
                                    bool forWhites, uint64_t enemyAttacks);
+
+  void appendCastling(const ChessBoard &board, bool forWhites);
 };

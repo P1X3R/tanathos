@@ -121,3 +121,30 @@ void MoveGenerator::updateCastlingRights(ChessBoard &board,
                : board.castlingRights.blackQueenSide) = false;
   }
 }
+
+void MoveGenerator::appendCastling(const ChessBoard &board,
+                                   const bool forWhites) {
+  uint64_t castleMask = 0;
+  if (forWhites) {
+    castleMask = (1ULL << BoardSquare::G1) | (1ULL << BoardSquare::C1);
+  } else {
+    castleMask = (1ULL << BoardSquare::G8) | (1ULL << BoardSquare::C8);
+  }
+
+  MoveCTX ctx = {
+      .from = forWhites ? BoardSquare::E1 : BoardSquare::E8,
+      .to = 0,
+      .capturedSquare = 0,
+      .original = Piece::KING,
+      .captured = Piece::NOTHING,
+      .promotion = Piece::NOTHING,
+  };
+
+  while (castleMask != 0) {
+    ctx.to = std::countr_zero(castleMask);
+
+    pseudoLegal.push_back(ctx);
+
+    castleMask &= castleMask - 1;
+  }
+}
