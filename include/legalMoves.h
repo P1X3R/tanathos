@@ -10,7 +10,8 @@ struct MoveCTX {
   uint32_t to : 6 = 0;   // The square where the moved piece shall land
   // The square where the captured piece was. Useful for en passant handling
   uint32_t capturedSquare : 6 = 0;
-  Piece original = NOTHING, captured = NOTHING, promotion = NOTHING;
+  Piece original = Piece::NOTHING, captured = Piece::NOTHING,
+        promotion = Piece::NOTHING;
 };
 
 class MoveGenerator {
