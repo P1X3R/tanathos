@@ -16,7 +16,7 @@ appendContext(MoveCTX &ctx, const bool forWhites,
   if ((enemyFlat & toBit) != 0) {
     for (uint32_t enemyType = Piece::PAWN; enemyType <= Piece::KING;
          enemyType++) {
-      if ((enemyColor[enemyType] & toBit) != 0) {
+      if ((enemyColor.at(enemyType) & toBit) != 0) {
         ctx.captured = static_cast<Piece>(enemyType);
         break;
       }
@@ -29,7 +29,7 @@ appendContext(MoveCTX &ctx, const bool forWhites,
   const int32_t enPassantCapture =
       forWhites ? ctx.to - BOARD_LENGTH : ctx.to + BOARD_LENGTH;
   if (ctx.original == Piece::PAWN && ctx.to == enPassantSquare &&
-      (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0) {
+      (enemyColor.at(Piece::PAWN) & (1ULL << enPassantCapture)) != 0) {
     ctx.capturedSquare = enPassantCapture;
   }
 
@@ -58,11 +58,11 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   const uint64_t enemyFlat = board.getFlat(!forWhites);
 
   for (uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
-    uint64_t typeBitboard = color[type];
+    uint64_t typeBitboard = color.at(type);
 
     while (typeBitboard != 0) {
       const auto fromSquare =
-          static_cast<int8_t>(std::countr_zero(color.at(typeBitboard)));
+          static_cast<int8_t>(std::countr_zero(typeBitboard));
       const Move pseudoLegalMoves = getPseudoLegal(
           static_cast<Piece>(type), fromSquare, flat, forWhites, enemyFlat);
       uint64_t pseudoLegalBits =
