@@ -68,6 +68,8 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
       uint64_t pseudoLegalBits =
           pseudoLegalMoves.quiet | pseudoLegalMoves.kills;
 
+      kills |= pseudoLegalMoves.kills;
+
       while (pseudoLegalBits != 0) {
         // Captured info and promotion are updated on pushContext
         MoveCTX ctx = {

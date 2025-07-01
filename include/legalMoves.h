@@ -18,6 +18,7 @@ struct MoveCTX {
 class MoveGenerator {
 public:
   std::vector<MoveCTX> pseudoLegal, legal;
+  uint64_t kills; // Useful for castling updating
 
   void generatePseudoLegal(const ChessBoard &board, bool forWhites);
   void filterLegal(const ChessBoard &board, bool forWhites);
