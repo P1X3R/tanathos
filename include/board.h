@@ -2,6 +2,7 @@
 
 #include "sysifus.h"
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <functional>
 #include <numeric>
@@ -11,20 +12,22 @@ struct ChessBoard {
   uint64_t zobrist;
   uint32_t halfmoveCounter : 7, enPassantSquare : 6; // 0 means "no en passant"
   bool whiteToMove : 1;
-  union {
-    struct {
-      bool whiteKingSide : 1;
-      bool whiteQueenSide : 1;
-      bool blackKingSide : 1;
-      bool blackQueenSide : 1;
-    };
-    uint32_t compressed : 4;
+  struct CastlingRight {
+    bool whiteKingSide : 1;
+    bool whiteQueenSide : 1;
+    bool blackKingSide : 1;
+    bool blackQueenSide : 1;
   } castlingRights;
+
   [[nodiscard]] auto getFlat(const bool forWhites) const -> uint64_t {
     const std::array<uint64_t, Piece::KING + 1> &color =
         forWhites ? this->whites : this->blacks;
 
     return std::reduce(color.begin(), color.end(), 0, std::bit_or{});
+  }
+
+  [[nodiscard]] auto getCompressedCastlingRights() const -> uint8_t {
+    return std::bit_cast<uint8_t>(castlingRights);
   }
 };
 
