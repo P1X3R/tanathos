@@ -4,16 +4,31 @@
 #include "sysifus.h" // for getPseudoLegal
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 
-static void
-appendContext(MoveCTX &ctx, const bool forWhites,
-              const std::array<uint64_t, Piece::KING + 1> &enemyColor,
-              const uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
-              const uint32_t enPassantSquare) {
+void appendContext(MoveCTX &ctx, const bool forWhites,
+                   const std::array<uint64_t, Piece::KING + 1> &enemyColor,
+                   const uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
+                   const int32_t enPassantSquare) {
+  // Adjust capturedSquare for en passant capture
+  const int32_t enPassantCapture = forWhites ? enPassantSquare - BOARD_LENGTH
+                                             : enPassantSquare + BOARD_LENGTH;
+
+  const bool isEnPassantCapture =
+      ctx.original == Piece::PAWN && enPassantSquare != 0 &&
+      std::abs(ctx.from - enPassantCapture) == 1 && enPassantCapture >= 0 &&
+      enPassantCapture < BOARD_AREA &&
+      (enemyColor.at(Piece::PAWN) & (1ULL << enPassantCapture)) != 0;
+
   const uint64_t toBit = 1ULL << ctx.to;
-  ctx.capturedSquare = ctx.to;
 
-  if ((enemyFlat & toBit) != 0) {
+  ctx.capturedSquare = ctx.to;
+  if (isEnPassantCapture) {
+    ctx.capturedSquare = enPassantCapture;
+    ctx.to = enPassantSquare;
+    ctx.captured = Piece::PAWN;
+  } else if ((enemyFlat & toBit) != 0) {
+    // Handle regular captures
     for (uint32_t enemyType = Piece::PAWN; enemyType <= Piece::KING;
          enemyType++) {
       if ((enemyColor.at(enemyType) & toBit) != 0) {
@@ -23,14 +38,6 @@ appendContext(MoveCTX &ctx, const bool forWhites,
     }
   } else {
     ctx.captured = Piece::NOTHING;
-  }
-
-  // Adjust capturedSquare for en passant capture
-  const int32_t enPassantCapture =
-      forWhites ? ctx.to - BOARD_LENGTH : ctx.to + BOARD_LENGTH;
-  if (ctx.original == Piece::PAWN && ctx.to == enPassantSquare &&
-      (enemyColor.at(Piece::PAWN) & (1ULL << enPassantCapture)) != 0) {
-    ctx.capturedSquare = enPassantCapture;
   }
 
   const auto toRank = static_cast<int8_t>(ctx.to / BOARD_LENGTH);
@@ -82,7 +89,7 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
         };
 
         appendContext(ctx, forWhites, enemyColor, enemyFlat, pseudoLegal,
-                      board.enPassantSquare);
+                      static_cast<int8_t>(board.enPassantSquare));
 
         pseudoLegalBits &= pseudoLegalBits - 1;
       }
@@ -115,12 +122,19 @@ void MoveGenerator::updateCastlingRights(ChessBoard &board,
   kingsPath.queenSide <<= rankShifting;
 
   if ((kingsPath.kingSide & blockedSquares) != 0) {
-    (forWhites ? board.castlingRights.whiteKingSide
-               : board.castlingRights.blackKingSide) = false;
+    if (forWhites) {
+      board.castlingRights.whiteKingSide = false;
+    } else {
+      board.castlingRights.blackKingSide = false;
+    }
   }
+
   if ((kingsPath.queenSide & blockedSquares) != 0) {
-    (forWhites ? board.castlingRights.whiteQueenSide
-               : board.castlingRights.blackQueenSide) = false;
+    if (forWhites) {
+      board.castlingRights.whiteQueenSide = false;
+    } else {
+      board.castlingRights.blackQueenSide = false;
+    }
   }
 }
 
