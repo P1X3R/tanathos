@@ -8,9 +8,10 @@
 #include <numeric>
 
 struct ChessBoard {
-  std::array<uint64_t, Piece::KING + 1> whites, blacks;
-  uint64_t zobrist;
-  uint32_t halfmoveCounter : 7, enPassantSquare : 6; // 0 means "no en passant"
+  std::array<std::uint64_t, Piece::KING + 1> whites, blacks;
+  std::uint64_t zobrist;
+  std::uint32_t halfmoveCounter : 7;
+  std::uint32_t enPassantSquare : 6; // 0 means "no en passant"
   bool whiteToMove : 1;
   struct CastlingRight {
     bool whiteKingSide : 1;
@@ -19,19 +20,19 @@ struct ChessBoard {
     bool blackQueenSide : 1;
   } castlingRights;
 
-  [[nodiscard]] auto getFlat(const bool forWhites) const -> uint64_t {
-    const std::array<uint64_t, Piece::KING + 1> &color =
+  [[nodiscard]] auto getFlat(const bool forWhites) const -> std::uint64_t {
+    const std::array<std::uint64_t, Piece::KING + 1> &color =
         forWhites ? this->whites : this->blacks;
 
     return std::reduce(color.begin(), color.end(), 0, std::bit_or{});
   }
 
-  [[nodiscard]] auto getCompressedCastlingRights() const -> uint8_t {
-    return std::bit_cast<uint8_t>(castlingRights);
+  [[nodiscard]] auto getCompressedCastlingRights() const -> std::uint8_t {
+    return std::bit_cast<std::uint8_t>(castlingRights);
   }
 };
 
-enum BoardSquare : uint8_t {
+enum BoardSquare : std::uint8_t {
   A1 = 0,
   B1,
   C1,
