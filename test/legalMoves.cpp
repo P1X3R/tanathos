@@ -41,7 +41,6 @@ protected:
     board.castlingRights.blackQueenSide = true;
 
     mg.pseudoLegal.clear();
-    mg.legal.clear();
     mg.kills = 0;
   }
 

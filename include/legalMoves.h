@@ -19,14 +19,17 @@ void appendContext(MoveCTX &ctx, bool forWhites,
                    std::uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
                    std::int32_t enPassantSquare);
 
+constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
+
 // For only one color
 class MoveGenerator {
 public:
-  std::vector<MoveCTX> pseudoLegal, legal;
+  std::vector<MoveCTX> pseudoLegal;
   std::uint64_t kills; // Useful for castling updating
 
+  MoveGenerator() { pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION); }
+
   void generatePseudoLegal(const ChessBoard &board, bool forWhites);
-  void filterLegal(const ChessBoard &board, bool forWhites);
 
 private:
   // Updates castling rights based on path obstruction only.
