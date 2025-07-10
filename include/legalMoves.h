@@ -27,8 +27,6 @@ void updateCastlingRights(ChessBoard &board, std::uint64_t enemyFlat,
 
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 
-class MoveGeneratorTest;
-
 // For only one color
 struct MoveGenerator {
   std::vector<MoveCTX> pseudoLegal;
