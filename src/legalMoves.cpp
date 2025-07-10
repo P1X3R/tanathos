@@ -101,10 +101,9 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   }
 }
 
-void MoveGenerator::updateCastlingRights(ChessBoard &board,
-                                         const std::uint64_t enemyFlat,
-                                         const bool forWhites,
-                                         const std::uint64_t enemyAttacks) {
+void updateCastlingRights(ChessBoard &board, const std::uint64_t enemyFlat,
+                          const bool forWhites,
+                          const std::uint64_t enemyAttacks) {
   const std::uint64_t blockedSquares = enemyAttacks | enemyFlat;
 
   struct {
@@ -144,9 +143,13 @@ void MoveGenerator::appendCastling(const ChessBoard &board,
                                    const bool forWhites) {
   std::uint64_t castleMask = 0;
   if (forWhites) {
-    castleMask = (1ULL << BoardSquare::G1) | (1ULL << BoardSquare::C1);
+    castleMask =
+        (board.castlingRights.whiteKingSide ? (1ULL << BoardSquare::G1) : 0) |
+        (board.castlingRights.whiteQueenSide ? (1ULL << BoardSquare::C1) : 0);
   } else {
-    castleMask = (1ULL << BoardSquare::G8) | (1ULL << BoardSquare::C8);
+    castleMask =
+        (board.castlingRights.blackKingSide ? (1ULL << BoardSquare::G8) : 0) |
+        (board.castlingRights.blackQueenSide ? (1ULL << BoardSquare::C8) : 0);
   }
 
   MoveCTX ctx = {

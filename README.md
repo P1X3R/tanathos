@@ -20,8 +20,8 @@ xmake && xmake run
 2. There you have, deal with it
 
 3. **Blame the eval**
-```c
-int evaluate(Board *b) {
+```cpp
+int evaluate(ChessBoard &board) {
     return rand() % 1000; // "Stochastic optimization"
 }
 ```

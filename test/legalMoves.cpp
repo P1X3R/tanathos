@@ -360,3 +360,225 @@ TEST_F(MoveGeneratorTest, GeneratePseudoLegalPawnPromotion) {
   EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedBishopPromo));
   EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedKnightPromo));
 }
+
+// --- Tests for updateCastlingRights ---
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsWhiteKingSideBlocked) {
+  // Set up enemy pieces/attacks blocking white's kingside castling
+  const std::uint64_t enemyFlat = (1ULL << BoardSquare::F1);
+  const std::uint64_t enemyAttacks = 0; // Only flat matters for this test
+
+  updateCastlingRights(board, enemyFlat, true, enemyAttacks);
+
+  EXPECT_FALSE(board.castlingRights.whiteKingSide);
+  EXPECT_TRUE(board.castlingRights.whiteQueenSide); // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.blackKingSide);  // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.blackQueenSide); // Should remain unchanged
+}
+
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsWhiteQueenSideBlocked) {
+  // Set up enemy pieces/attacks blocking white's queenside castling
+  const std::uint64_t enemyFlat = (1ULL << BoardSquare::D1);
+  const std::uint64_t enemyAttacks = 0;
+
+  updateCastlingRights(board, enemyFlat, true, enemyAttacks);
+
+  EXPECT_TRUE(board.castlingRights.whiteKingSide); // Should remain unchanged
+  EXPECT_FALSE(board.castlingRights.whiteQueenSide);
+  EXPECT_TRUE(board.castlingRights.blackKingSide);  // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.blackQueenSide); // Should remain unchanged
+}
+
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsBlackKingSideBlocked) {
+  // Set up enemy pieces/attacks blocking black's kingside castling
+  const std::uint64_t enemyFlat = (1ULL << BoardSquare::F8);
+  const std::uint64_t enemyAttacks = 0;
+
+  updateCastlingRights(board, enemyFlat, false, enemyAttacks);
+
+  EXPECT_TRUE(board.castlingRights.whiteKingSide);  // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.whiteQueenSide); // Should remain unchanged
+  EXPECT_FALSE(board.castlingRights.blackKingSide);
+  EXPECT_TRUE(board.castlingRights.blackQueenSide); // Should remain unchanged
+}
+
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsBlackQueenSideBlocked) {
+  // Set up enemy pieces/attacks blocking black's queenside castling
+  const std::uint64_t enemyFlat = (1ULL << BoardSquare::D8);
+  const std::uint64_t enemyAttacks = 0;
+
+  updateCastlingRights(board, enemyFlat, false, enemyAttacks);
+
+  EXPECT_TRUE(board.castlingRights.whiteKingSide);  // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.whiteQueenSide); // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.blackKingSide);  // Should remain unchanged
+  EXPECT_FALSE(board.castlingRights.blackQueenSide);
+}
+
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsWhiteKingSideAttacked) {
+  // Set up enemy attacks (but not pieces) blocking white's kingside castling
+  const std::uint64_t enemyFlat = 0;
+  const std::uint64_t enemyAttacks = (1ULL << BoardSquare::F1);
+
+  updateCastlingRights(board, enemyFlat, true, enemyAttacks);
+
+  EXPECT_FALSE(board.castlingRights.whiteKingSide);
+  EXPECT_TRUE(board.castlingRights.whiteQueenSide); // Should remain unchanged
+}
+
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsWhiteBothSidesBlocked) {
+  // Set up enemy pieces blocking both white's castling paths
+  const std::uint64_t enemyFlat =
+      (1ULL << BoardSquare::F1) | (1ULL << BoardSquare::D1);
+  const std::uint64_t enemyAttacks = 0;
+
+  updateCastlingRights(board, enemyFlat, true, enemyAttacks);
+
+  EXPECT_FALSE(board.castlingRights.whiteKingSide);
+  EXPECT_FALSE(board.castlingRights.whiteQueenSide);
+  EXPECT_TRUE(board.castlingRights.blackKingSide);  // Should remain unchanged
+  EXPECT_TRUE(board.castlingRights.blackQueenSide); // Should remain unchanged
+}
+
+TEST_F(MoveGeneratorTest, UpdateCastlingRightsNoBlocking) {
+  // No blocking pieces or attacks - rights should remain unchanged
+  const std::uint64_t enemyFlat = 0;
+  const std::uint64_t enemyAttacks = 0;
+
+  updateCastlingRights(board, enemyFlat, true, enemyAttacks);
+
+  EXPECT_TRUE(board.castlingRights.whiteKingSide);
+  EXPECT_TRUE(board.castlingRights.whiteQueenSide);
+  EXPECT_TRUE(board.castlingRights.blackKingSide);
+  EXPECT_TRUE(board.castlingRights.blackQueenSide);
+}
+
+// --- Tests for MoveGenerator::appendCastling ---
+TEST_F(MoveGeneratorTest, AppendCastlingWhiteBothSidesAvailable) {
+  // Set up board with both white castling rights
+  board.castlingRights.whiteKingSide = true;
+  board.castlingRights.whiteQueenSide = true;
+
+  mg.appendCastling(board, true);
+
+  // Expect both king-side and queen-side castling moves
+  ASSERT_EQ(mg.pseudoLegal.size(), 2);
+
+  // King-side castling (E1 to G1)
+  MoveCTX expectedKingSide = {.from = BoardSquare::E1,
+                              .to = BoardSquare::G1,
+                              .original = Piece::KING,
+                              .captured = Piece::NOTHING,
+                              .promotion = Piece::NOTHING};
+
+  // Queen-side castling (E1 to C1)
+  MoveCTX expectedQueenSide = {.from = BoardSquare::E1,
+                               .to = BoardSquare::C1,
+                               .original = Piece::KING,
+                               .captured = Piece::NOTHING,
+                               .promotion = Piece::NOTHING};
+
+  EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedKingSide));
+  EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedQueenSide));
+}
+
+TEST_F(MoveGeneratorTest, AppendCastlingWhiteKingSideOnly) {
+  // Set up board with only white king-side castling right
+  board.castlingRights.whiteKingSide = true;
+  board.castlingRights.whiteQueenSide = false;
+
+  mg.appendCastling(board, true);
+
+  // Expect only king-side castling move
+  ASSERT_EQ(mg.pseudoLegal.size(), 1);
+
+  MoveCTX expectedKingSide = {.from = BoardSquare::E1,
+                              .to = BoardSquare::G1,
+                              .original = Piece::KING,
+                              .captured = Piece::NOTHING,
+                              .promotion = Piece::NOTHING};
+
+  EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedKingSide));
+}
+
+TEST_F(MoveGeneratorTest, AppendCastlingWhiteQueenSideOnly) {
+  // Set up board with only white queen-side castling right
+  board.castlingRights.whiteKingSide = false;
+  board.castlingRights.whiteQueenSide = true;
+
+  mg.appendCastling(board, true);
+
+  // Expect only queen-side castling move
+  ASSERT_EQ(mg.pseudoLegal.size(), 1);
+
+  MoveCTX expectedQueenSide = {.from = BoardSquare::E1,
+                               .to = BoardSquare::C1,
+                               .original = Piece::KING,
+                               .captured = Piece::NOTHING,
+                               .promotion = Piece::NOTHING};
+
+  EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedQueenSide));
+}
+
+TEST_F(MoveGeneratorTest, AppendCastlingBlackBothSidesAvailable) {
+  // Set up board with both black castling rights
+  board.castlingRights.blackKingSide = true;
+  board.castlingRights.blackQueenSide = true;
+
+  mg.appendCastling(board, false);
+
+  // Expect both king-side and queen-side castling moves
+  ASSERT_EQ(mg.pseudoLegal.size(), 2);
+
+  // King-side castling (E8 to G8)
+  MoveCTX expectedKingSide = {.from = BoardSquare::E8,
+                              .to = BoardSquare::G8,
+                              .original = Piece::KING,
+                              .captured = Piece::NOTHING,
+                              .promotion = Piece::NOTHING};
+
+  // Queen-side castling (E8 to C8)
+  MoveCTX expectedQueenSide = {.from = BoardSquare::E8,
+                               .to = BoardSquare::C8,
+                               .original = Piece::KING,
+                               .captured = Piece::NOTHING,
+                               .promotion = Piece::NOTHING};
+
+  EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedKingSide));
+  EXPECT_TRUE(containsMove(mg.pseudoLegal, expectedQueenSide));
+}
+
+TEST_F(MoveGeneratorTest, AppendCastlingNoRights) {
+  // Set up board with no castling rights
+  board.castlingRights.whiteKingSide = false;
+  board.castlingRights.whiteQueenSide = false;
+  board.castlingRights.blackKingSide = false;
+  board.castlingRights.blackQueenSide = false;
+
+  // Test for white
+  mg.appendCastling(board, true);
+  EXPECT_TRUE(mg.pseudoLegal.empty());
+
+  // Test for black
+  mg.pseudoLegal.clear();
+  mg.appendCastling(board, false);
+  EXPECT_TRUE(mg.pseudoLegal.empty());
+}
+
+TEST_F(MoveGeneratorTest, AppendCastlingMixedScenario) {
+  // Set up board with white king-side and black queen-side rights only
+  board.castlingRights.whiteKingSide = true;
+  board.castlingRights.whiteQueenSide = false;
+  board.castlingRights.blackKingSide = false;
+  board.castlingRights.blackQueenSide = true;
+
+  // Test white
+  mg.appendCastling(board, true);
+  ASSERT_EQ(mg.pseudoLegal.size(), 1);
+  EXPECT_EQ(mg.pseudoLegal[0].to, BoardSquare::G1);
+
+  // Test black
+  mg.pseudoLegal.clear();
+  mg.appendCastling(board, false);
+  ASSERT_EQ(mg.pseudoLegal.size(), 1);
+  EXPECT_EQ(mg.pseudoLegal[0].to, BoardSquare::C8);
+}

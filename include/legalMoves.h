@@ -19,24 +19,24 @@ void appendContext(MoveCTX &ctx, bool forWhites,
                    std::uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
                    std::int32_t enPassantSquare);
 
+// Updates castling rights based on path obstruction only.
+// Assumes other castling conditions (king/rook haven't moved,
+// king not in check) are handled elsewhere.
+void updateCastlingRights(ChessBoard &board, std::uint64_t enemyFlat,
+                          bool forWhites, std::uint64_t enemyAttacks);
+
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 
+class MoveGeneratorTest;
+
 // For only one color
-class MoveGenerator {
-public:
+struct MoveGenerator {
   std::vector<MoveCTX> pseudoLegal;
   std::uint64_t kills; // Useful for castling updating
 
   MoveGenerator() { pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION); }
 
   void generatePseudoLegal(const ChessBoard &board, bool forWhites);
-
-private:
-  // Updates castling rights based on path obstruction only.
-  // Assumes other castling conditions (king/rook haven't moved,
-  // king not in check) are handled elsewhere.
-  static void updateCastlingRights(ChessBoard &board, std::uint64_t enemyFlat,
-                                   bool forWhites, std::uint64_t enemyAttacks);
 
   void appendCastling(const ChessBoard &board, bool forWhites);
 };
