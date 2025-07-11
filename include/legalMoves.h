@@ -12,6 +12,9 @@ struct MoveCTX {
   std::uint32_t capturedSquare : 6 = 0;
   Piece original = Piece::NOTHING, captured = Piece::NOTHING,
         promotion = Piece::NOTHING;
+
+  MoveCTX() = default;
+  explicit MoveCTX(const std::string_view &algebraic, const ChessBoard &board);
 };
 
 void appendContext(MoveCTX &ctx, bool forWhites,

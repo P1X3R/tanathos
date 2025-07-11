@@ -1,6 +1,8 @@
 #include "bitboard.h"
 #include "board.h"
+#include "legalMoves.h"
 #include <string>
+#include <string_view>
 
 ChessBoard::ChessBoard(const std::string &fen) {
   zobrist = 0;
@@ -119,4 +121,37 @@ ChessBoard::ChessBoard(const std::string &fen) {
   pos = next + 1;
   next = fen.find(' ', pos);
   halfmoveCounter = std::stoi(fen.substr(pos, next - pos));
+}
+
+MoveCTX::MoveCTX(const std::string_view &algebraic, const ChessBoard &board) {
+  const std::string_view fromCoordinates = algebraic.substr(0, 2);
+  const std::string_view toCoordinates = algebraic.substr(2, algebraic.size());
+
+  const std::uint32_t fromFile = fromCoordinates.at(0) - 'a';
+  const std::uint32_t fromRank = fromCoordinates.at(1) - '1';
+
+  const std::uint32_t toFile = toCoordinates.at(0) - 'a';
+  const std::uint32_t toRank = toCoordinates.at(1) - '1';
+
+  from = (fromRank * BOARD_LENGTH) + fromFile;
+  to = (toRank * BOARD_LENGTH) + toFile;
+
+  if (toCoordinates.size() == 3) {
+    switch (toCoordinates.at(2)) {
+    case 'n':
+      promotion = Piece::KNIGHT;
+      break;
+    case 'b':
+      promotion = Piece::BISHOP;
+      break;
+    case 'r':
+      promotion = Piece::ROOK;
+      break;
+    case 'q':
+      promotion = Piece::QUEEN;
+      break;
+    default:
+      break;
+    }
+  }
 }
