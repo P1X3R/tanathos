@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <functional>
 #include <numeric>
+#include <string>
 
 struct ChessBoard {
   std::array<std::uint64_t, Piece::KING + 1> whites, blacks;
@@ -19,6 +20,9 @@ struct ChessBoard {
     bool blackKingSide : 1;
     bool blackQueenSide : 1;
   } castlingRights;
+
+  ChessBoard() = default;
+  explicit ChessBoard(const std::string &fen);
 
   [[nodiscard]] auto getFlat(const bool forWhites) const -> std::uint64_t {
     const std::array<std::uint64_t, Piece::KING + 1> &color =
