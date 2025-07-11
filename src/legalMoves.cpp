@@ -18,8 +18,7 @@ void appendContext(MoveCTX &ctx, const bool forWhites,
 
   const bool isEnPassantCapture =
       ctx.original == Piece::PAWN && enPassantSquare != 0 &&
-      std::abs(ctx.from - enPassantCapture) == 1 && enPassantCapture >= 0 &&
-      enPassantCapture < BOARD_AREA &&
+      std::abs(ctx.from - enPassantCapture) == 1 &&
       (enemyColor.at(Piece::PAWN) & (1ULL << enPassantCapture)) != 0;
 
   const std::uint64_t toBit = 1ULL << ctx.to;

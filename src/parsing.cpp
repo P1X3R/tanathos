@@ -1,8 +1,10 @@
 #include "bitboard.h"
 #include "board.h"
 #include "legalMoves.h"
+#include "sysifus.h"
 #include <string>
 #include <string_view>
+#include <utility>
 
 ChessBoard::ChessBoard(const std::string &fen) {
   zobrist = 0;
@@ -123,7 +125,30 @@ ChessBoard::ChessBoard(const std::string &fen) {
   halfmoveCounter = std::stoi(fen.substr(pos, next - pos));
 }
 
-MoveCTX::MoveCTX(const std::string_view &algebraic, const ChessBoard &board) {
+static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
+    -> std::pair<Piece, bool> {
+  const std::uint64_t bit = 1ULL << square;
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    if ((board.whites.at(type) & bit) != 0) {
+      return std::make_pair(static_cast<Piece>(type), true);
+    }
+  }
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    if ((board.blacks.at(type) & bit) != 0) {
+      return std::make_pair(static_cast<Piece>(type), false);
+    }
+  }
+
+  return std::make_pair(Piece::NOTHING, false);
+}
+
+auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
+    -> MoveCTX {
+  MoveCTX ctx{};
+
+  // Get piece position and landing square
   const std::string_view fromCoordinates = algebraic.substr(0, 2);
   const std::string_view toCoordinates = algebraic.substr(2, algebraic.size());
 
@@ -133,25 +158,56 @@ MoveCTX::MoveCTX(const std::string_view &algebraic, const ChessBoard &board) {
   const std::uint32_t toFile = toCoordinates.at(0) - 'a';
   const std::uint32_t toRank = toCoordinates.at(1) - '1';
 
-  from = (fromRank * BOARD_LENGTH) + fromFile;
-  to = (toRank * BOARD_LENGTH) + toFile;
+  ctx.from = (fromRank * BOARD_LENGTH) + fromFile;
+  ctx.to = (toRank * BOARD_LENGTH) + toFile;
 
-  if (toCoordinates.size() == 3) {
-    switch (toCoordinates.at(2)) {
+  // Get original piece type and color
+  std::pair<Piece, bool> pieceInfo = getPieceAt(ctx.from, board);
+  ctx.original = pieceInfo.first;
+  const bool forWhites = pieceInfo.second;
+
+  // Get captured piece info depending on en passant
+  const std::int32_t enPassantCapture =
+      forWhites ? board.enPassantSquare - BOARD_LENGTH
+                : board.enPassantSquare + BOARD_LENGTH;
+
+  const std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
+      forWhites ? board.blacks : board.whites;
+
+  const bool isEnPassantCapture =
+      ctx.original == Piece::PAWN && board.enPassantSquare != 0 &&
+      std::abs(ctx.from - enPassantCapture) == 1 &&
+      (enemyColor.at(Piece::PAWN) & (1ULL << enPassantCapture)) != 0;
+
+  if (isEnPassantCapture) {
+    ctx.capturedSquare = enPassantCapture;
+    ctx.captured = Piece::PAWN;
+  } else {
+    ctx.capturedSquare = ctx.to;
+    ctx.captured = getPieceAt(ctx.to, board).first;
+  }
+
+  // Get promotions
+  static constexpr std::uint32_t algebraicLengthIfPromotion = 5;
+  if (algebraic.size() == algebraicLengthIfPromotion) {
+    switch (algebraic.at(4)) {
     case 'n':
-      promotion = Piece::KNIGHT;
+      ctx.promotion = Piece::KNIGHT;
       break;
     case 'b':
-      promotion = Piece::BISHOP;
+      ctx.promotion = Piece::BISHOP;
       break;
     case 'r':
-      promotion = Piece::ROOK;
+      ctx.promotion = Piece::ROOK;
       break;
     case 'q':
-      promotion = Piece::QUEEN;
+      ctx.promotion = Piece::QUEEN;
       break;
     default:
+      ctx.promotion = Piece::NOTHING;
       break;
     }
   }
+
+  return ctx;
 }
