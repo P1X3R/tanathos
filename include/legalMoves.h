@@ -14,7 +14,8 @@ struct MoveCTX {
         promotion = Piece::NOTHING;
 };
 
-auto fromAlgebraic() -> MoveCTX;
+auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
+    -> MoveCTX;
 
 void appendContext(MoveCTX &ctx, bool forWhites,
                    const std::array<std::uint64_t, Piece::KING + 1> &enemyColor,

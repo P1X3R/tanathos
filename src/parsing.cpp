@@ -7,6 +7,8 @@
 #include <utility>
 
 ChessBoard::ChessBoard(const std::string &fen) {
+  whites = {};
+  blacks = {};
   zobrist = 0;
   halfmoveCounter = 0;
   enPassantSquare = 0;
