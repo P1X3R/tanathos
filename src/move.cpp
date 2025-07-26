@@ -158,6 +158,25 @@ static void restoreByUndoCTX(ChessBoard &board, const UndoCTX &ctx) {
   board.whiteToMove = !board.whiteToMove;
 }
 
+static void
+restoreRookPositionIfCastling(std::array<std::uint64_t, Piece::KING + 1> &color,
+                              ChessBoard &board, const UndoCTX &ctx) {
+  const bool isKingSide = board.whiteToMove ? ctx.move.to == BoardSquare::G1
+                                            : ctx.move.to == BoardSquare::G8;
+  std::uint32_t fromRook = 0;
+  std::uint32_t toRook = 0;
+
+  if (board.whiteToMove) {
+    fromRook = isKingSide ? BoardSquare::H1 : BoardSquare::A1;
+    toRook = isKingSide ? BoardSquare::F1 : BoardSquare::D1;
+  } else {
+    fromRook = isKingSide ? BoardSquare::H8 : BoardSquare::A8;
+    toRook = isKingSide ? BoardSquare::F8 : BoardSquare::D8;
+  }
+
+  color[Piece::ROOK] ^= (1ULL << fromRook) | (1ULL << toRook);
+}
+
 static void undoMoveDebugAsserts(ChessBoard &board, const UndoCTX &ctx) {
 #ifndef NDEBUG
   assert(ctx.move.from < BOARD_AREA && "Invalid source square");
@@ -184,4 +203,22 @@ void undoMove(ChessBoard &board, const UndoCTX &ctx) {
   undoMoveDebugAsserts(board, ctx);
 
   restoreByUndoCTX(board, ctx);
+
+  std::array<std::uint64_t, Piece::KING + 1> &color =
+      board.whiteToMove ? board.whites : board.blacks;
+
+  // Remove piece from final position
+  const Piece final = ctx.move.promotion != Piece::NOTHING ? ctx.move.promotion
+                                                           : ctx.move.original;
+
+  color[final] &= ~(1ULL << ctx.move.to);
+  color[ctx.move.original] |= 1ULL << ctx.move.from;
+
+  restoreRookPositionIfCastling(color, board, ctx);
+
+  if (ctx.move.captured != Piece::NOTHING) {
+    std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
+        board.whiteToMove ? board.blacks : board.whites;
+    enemyColor[ctx.move.captured] |= 1ULL << ctx.move.capturedSquare;
+  }
 }
