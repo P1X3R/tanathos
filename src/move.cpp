@@ -30,4 +30,8 @@ static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
 
 void makeMove(ChessBoard &board, const MoveCTX &ctx) {
   movePieceToDestination(board, ctx);
+
+  board.zobrist ^= ZOBRIST_TURN[board.whiteToMove] ^
+                   ZOBRIST_TURN[static_cast<std::size_t>(!board.whiteToMove)];
+  board.whiteToMove = !board.whiteToMove;
 }
