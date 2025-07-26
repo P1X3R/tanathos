@@ -1,7 +1,9 @@
 #include "move.h"
+#include "bitboard.h"
 #include "sysifus.h"
 #include "zobrist.h"
 #include <cstddef>
+#include <cstdlib>
 
 static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
   std::array<std::uint64_t, Piece::KING + 1> &color =
@@ -35,6 +37,21 @@ void makeMove(ChessBoard &board, const MoveCTX &ctx) {
     board.halfmoveCounter = 0;
   } else {
     board.halfmoveCounter++;
+  }
+
+  // Clear old en passant zobrist
+  if (board.enPassantSquare != 0) {
+    board.zobrist ^=
+        ZOBRIST_EN_PASSANT_FILE[board.enPassantSquare % BOARD_LENGTH];
+  }
+
+  board.enPassantSquare = 0;
+  const bool isDoublePush =
+      ctx.original == Piece::PAWN && abs(ctx.to - ctx.from) == BOARD_LENGTH * 2;
+  if (isDoublePush) {
+    board.enPassantSquare = ctx.to;
+    board.zobrist ^=
+        ZOBRIST_EN_PASSANT_FILE[board.enPassantSquare % BOARD_LENGTH];
   }
 
   board.zobrist ^= ZOBRIST_TURN[board.whiteToMove] ^
