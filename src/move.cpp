@@ -30,15 +30,7 @@ static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
   }
 }
 
-void makeMove(ChessBoard &board, const MoveCTX &ctx) {
-  movePieceToDestination(board, ctx);
-
-  if (ctx.captured != Piece::NOTHING || ctx.original == Piece::PAWN) {
-    board.halfmoveCounter = 0;
-  } else {
-    board.halfmoveCounter++;
-  }
-
+static void updateEnPassantSquare(ChessBoard &board, const MoveCTX &ctx) {
   // Clear old en passant zobrist
   if (board.enPassantSquare != 0) {
     board.zobrist ^=
@@ -49,10 +41,22 @@ void makeMove(ChessBoard &board, const MoveCTX &ctx) {
   const bool isDoublePush =
       ctx.original == Piece::PAWN && abs(ctx.to - ctx.from) == BOARD_LENGTH * 2;
   if (isDoublePush) {
-    board.enPassantSquare = ctx.to;
+    board.enPassantSquare = (ctx.from + ctx.to) / 2;
     board.zobrist ^=
         ZOBRIST_EN_PASSANT_FILE[board.enPassantSquare % BOARD_LENGTH];
   }
+}
+
+void makeMove(ChessBoard &board, const MoveCTX &ctx) {
+  movePieceToDestination(board, ctx);
+
+  if (ctx.captured != Piece::NOTHING || ctx.original == Piece::PAWN) {
+    board.halfmoveCounter = 0;
+  } else {
+    board.halfmoveCounter++;
+  }
+
+  updateEnPassantSquare(board, ctx);
 
   board.zobrist ^= ZOBRIST_TURN;
   board.whiteToMove = !board.whiteToMove;
