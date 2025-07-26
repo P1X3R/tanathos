@@ -2,6 +2,7 @@
 #include "bitboard.h"
 #include "board.h"
 #include "sysifus.h" // for getPseudoLegal
+#include "zobrist.h"
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
@@ -136,6 +137,9 @@ void updateCastlingRights(ChessBoard &board, const std::uint64_t enemyFlat,
       board.castlingRights.blackQueenSide = false;
     }
   }
+
+  // Update Zobrist
+  board.zobrist ^= ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
 }
 
 void MoveGenerator::appendCastling(const ChessBoard &board,
