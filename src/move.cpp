@@ -31,6 +31,12 @@ static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
 void makeMove(ChessBoard &board, const MoveCTX &ctx) {
   movePieceToDestination(board, ctx);
 
+  if (ctx.captured != Piece::NOTHING || ctx.original == Piece::PAWN) {
+    board.halfmoveCounter = 0;
+  } else {
+    board.halfmoveCounter++;
+  }
+
   board.zobrist ^= ZOBRIST_TURN[board.whiteToMove] ^
                    ZOBRIST_TURN[static_cast<std::size_t>(!board.whiteToMove)];
   board.whiteToMove = !board.whiteToMove;
