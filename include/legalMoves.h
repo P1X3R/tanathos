@@ -25,8 +25,8 @@ void appendContext(MoveCTX &ctx, bool forWhites,
 // Updates castling rights based on path obstruction only.
 // Assumes other castling conditions (king/rook haven't moved,
 // king not in check) are handled elsewhere.
-void updateCastlingRights(ChessBoard &board, std::uint64_t enemyFlat,
-                          bool forWhites, std::uint64_t enemyAttacks);
+void updateCastlingRights(ChessBoard &board, std::uint64_t flat, bool forWhites,
+                          std::uint64_t enemyAttacks);
 
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 

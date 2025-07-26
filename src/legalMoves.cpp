@@ -101,10 +101,10 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   }
 }
 
-void updateCastlingRights(ChessBoard &board, const std::uint64_t enemyFlat,
+void updateCastlingRights(ChessBoard &board, const std::uint64_t flat,
                           const bool forWhites,
                           const std::uint64_t enemyAttacks) {
-  const std::uint64_t blockedSquares = enemyAttacks | enemyFlat;
+  const std::uint64_t blockedSquares = enemyAttacks | flat;
 
   struct {
     std::uint64_t kingSide;

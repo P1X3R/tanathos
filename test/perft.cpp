@@ -26,10 +26,12 @@ protected:
         .zobrist = board.zobrist,
     };
 
-    updateCastlingRights(board, board.getFlat(false), true,
-                         blacksGenerator.kills); // For whites
-    updateCastlingRights(board, board.getFlat(true), false,
-                         whitesGenerator.kills); // For blacks
+    std::uint64_t flat = board.getFlat(true) | board.getFlat(false);
+
+    // For whites
+    updateCastlingRights(board, flat, true, blacksGenerator.kills);
+    // For blacks
+    updateCastlingRights(board, flat, false, whitesGenerator.kills);
 
     whitesGenerator.appendCastling(board, true);
     blacksGenerator.appendCastling(board, false);
@@ -45,13 +47,6 @@ protected:
       makeMove(board, move);
 
       if (!board.isKingUnderCheck(enemyGenerator.kills, !board.whiteToMove)) {
-        std::cout << "DEBUG Move - "
-                  << "From: " << move.from << ", To: " << move.to
-                  << ", CapturedSquare: " << move.capturedSquare
-                  << ", OriginalPiece: " << static_cast<int>(move.original)
-                  << ", CapturedPiece: " << static_cast<int>(move.captured)
-                  << ", PromotionPiece: " << static_cast<int>(move.promotion)
-                  << '\n';
         nodes += perft(depth - 1, board);
       }
 
@@ -68,4 +63,8 @@ TEST_F(PerftTest, StartingPosition) {
   ChessBoard startingBoard(startingPositionFEN);
 
   EXPECT_EQ(perft(1, startingBoard), 20);
+  EXPECT_EQ(perft(2, startingBoard), 400);
+  EXPECT_EQ(perft(3, startingBoard), 8902);
+  EXPECT_EQ(perft(4, startingBoard), 197281);
+  EXPECT_EQ(perft(5, startingBoard), 4865609);
 }
