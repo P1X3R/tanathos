@@ -149,3 +149,39 @@ void makeMove(ChessBoard &board, const MoveCTX &ctx) {
   board.zobrist ^= ZOBRIST_TURN;
   board.whiteToMove = !board.whiteToMove;
 }
+
+static void restoreByUndoCTX(ChessBoard &board, const UndoCTX &ctx) {
+  board.zobrist = ctx.zobrist;
+  board.halfmoveClock = ctx.halfmoveClock;
+  board.enPassantSquare = ctx.enPassantSquare;
+  board.castlingRights = ctx.castlingRights;
+  board.whiteToMove = !board.whiteToMove;
+}
+
+static void undoMoveDebugAsserts(ChessBoard &board, const UndoCTX &ctx) {
+#ifndef NDEBUG
+  assert(ctx.move.from < BOARD_AREA && "Invalid source square");
+  assert(ctx.move.to < BOARD_AREA && "Invalid destination square");
+  assert(ctx.move.capturedSquare < BOARD_AREA && "Invalid captured square");
+  assert(ctx.move.from != ctx.move.to && "Source and destination must differ");
+  assert(ctx.move.original != Piece::NOTHING &&
+         "Original piece cannot be NOTHING");
+  assert(ctx.move.promotion == Piece::NOTHING ||
+         (ctx.move.promotion >= Piece::KNIGHT &&
+          ctx.move.promotion <= Piece::QUEEN) &&
+             "Invalid promotion piece");
+  assert(ctx.move.promotion == Piece::NOTHING ||
+         (board.whiteToMove ? ctx.move.to >= 56 : ctx.move.to <= 7) &&
+             "Promotion must occur on opponent's back rank");
+  assert(ctx.move.captured <= Piece::KING ||
+         ctx.move.captured == Piece::NOTHING && "Invalid captured piece");
+  assert(ctx.halfmoveClock <= 127 && "Invalid halfmove clock");
+  assert(ctx.enPassantSquare < BOARD_AREA && "Invalid en passant square");
+#endif
+}
+
+void undoMove(ChessBoard &board, const UndoCTX &ctx) {
+  undoMoveDebugAsserts(board, ctx);
+
+  restoreByUndoCTX(board, ctx);
+}
