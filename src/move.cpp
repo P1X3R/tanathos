@@ -2,6 +2,7 @@
 #include "bitboard.h"
 #include "sysifus.h"
 #include "zobrist.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdlib>
 
@@ -48,6 +49,11 @@ static void updateEnPassantSquare(ChessBoard &board, const MoveCTX &ctx) {
 }
 
 void makeMove(ChessBoard &board, const MoveCTX &ctx) {
+#ifndef NDEBUG
+  assert(ctx.original != Piece::NOTHING);
+  assert(ctx.original == Piece::PAWN ? ctx.promotion == Piece::NOTHING : true);
+#endif // !NDEBUG
+
   movePieceToDestination(board, ctx);
 
   if (ctx.captured != Piece::NOTHING || ctx.original == Piece::PAWN) {
