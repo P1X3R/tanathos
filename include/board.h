@@ -3,8 +3,10 @@
 #include "sysifus.h"
 #include <array>
 #include <bit>
+#include <bitset>
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <numeric>
 #include <string>
 
@@ -32,7 +34,9 @@ struct ChessBoard {
   }
 
   [[nodiscard]] auto getCompressedCastlingRights() const -> std::uint8_t {
-    return std::bit_cast<std::uint8_t>(castlingRights);
+    // Masked to ensure only the first 4 bits can be set
+    static constexpr std::uint8_t irrelevantBitMask = 0x0F;
+    return std::bit_cast<std::uint8_t>(castlingRights) & irrelevantBitMask;
   }
 };
 
