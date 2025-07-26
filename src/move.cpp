@@ -124,8 +124,15 @@ static void updateCastlingRightsByMove(ChessBoard &board, const MoveCTX &ctx) {
 
 void makeMove(ChessBoard &board, const MoveCTX &ctx) {
 #ifndef NDEBUG
+  assert(ctx.from >= 0 && ctx.from < BOARD_AREA);
+  assert(ctx.to >= 0 && ctx.to < BOARD_AREA);
+  assert(ctx.capturedSquare >= 0 && ctx.capturedSquare < BOARD_AREA);
+  assert(ctx.from != ctx.to);
   assert(ctx.original != Piece::NOTHING);
-  assert(ctx.original == Piece::PAWN ? ctx.promotion == Piece::NOTHING : true);
+  assert(ctx.promotion == Piece::NOTHING ||
+         (board.whiteToMove ? (ctx.to >= 56) : (ctx.to <= 7)));
+  assert(ctx.promotion == Piece::NOTHING ||
+         (ctx.promotion <= Piece::QUEEN && ctx.promotion >= Piece::KNIGHT));
 #endif // !NDEBUG
 
   movePieceToDestination(board, ctx);
