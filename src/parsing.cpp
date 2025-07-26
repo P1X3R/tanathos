@@ -132,13 +132,13 @@ static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
   const std::uint64_t bit = 1ULL << square;
 
   for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
-    if ((board.whites.at(type) & bit) != 0) {
+    if ((board.whites[type] & bit) != 0) {
       return std::make_pair(static_cast<Piece>(type), true);
     }
   }
 
   for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
-    if ((board.blacks.at(type) & bit) != 0) {
+    if ((board.blacks[type] & bit) != 0) {
       return std::make_pair(static_cast<Piece>(type), false);
     }
   }
@@ -154,11 +154,11 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   const std::string_view fromCoordinates = algebraic.substr(0, 2);
   const std::string_view toCoordinates = algebraic.substr(2, algebraic.size());
 
-  const std::uint32_t fromFile = fromCoordinates.at(0) - 'a';
-  const std::uint32_t fromRank = fromCoordinates.at(1) - '1';
+  const std::uint32_t fromFile = fromCoordinates[0] - 'a';
+  const std::uint32_t fromRank = fromCoordinates[1] - '1';
 
-  const std::uint32_t toFile = toCoordinates.at(0) - 'a';
-  const std::uint32_t toRank = toCoordinates.at(1) - '1';
+  const std::uint32_t toFile = toCoordinates[0] - 'a';
+  const std::uint32_t toRank = toCoordinates[1] - '1';
 
   ctx.from = (fromRank * BOARD_LENGTH) + fromFile;
   ctx.to = (toRank * BOARD_LENGTH) + toFile;
@@ -179,7 +179,7 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   const bool isEnPassantCapture =
       ctx.original == Piece::PAWN && board.enPassantSquare != 0 &&
       std::abs(ctx.from - enPassantCapture) == 1 &&
-      (enemyColor.at(Piece::PAWN) & (1ULL << enPassantCapture)) != 0;
+      (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0;
 
   if (isEnPassantCapture) {
     ctx.capturedSquare = enPassantCapture;
@@ -192,7 +192,7 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   // Get promotions
   static constexpr std::uint32_t algebraicLengthIfPromotion = 5;
   if (algebraic.size() == algebraicLengthIfPromotion) {
-    switch (algebraic.at(4)) {
+    switch (algebraic[4]) {
     case 'n':
       ctx.promotion = Piece::KNIGHT;
       break;

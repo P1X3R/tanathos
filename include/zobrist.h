@@ -5,9 +5,9 @@
 #include <array>
 #include <cstdint>
 
-extern std::array<
+static std::array<
     std::array<std::array<std::uint64_t, BOARD_AREA>, Piece::KING + 1>, 2>
     ZOBRIST_PIECE;
-extern std::array<std::uint64_t, 2> ZOBRIST_TURN;
-extern std::array<std::uint64_t, 1 << 4> ZOBRIST_CASTLING_RIGHTS;
-extern std::array<std::uint64_t, BOARD_LENGTH> ZOBRIST_EN_PASSANT_FILE;
+static std::uint64_t ZOBRIST_TURN;
+static std::array<std::uint64_t, 1 << 4> ZOBRIST_CASTLING_RIGHTS;
+static std::array<std::uint64_t, BOARD_LENGTH> ZOBRIST_EN_PASSANT_FILE;
