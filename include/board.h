@@ -38,6 +38,14 @@ struct ChessBoard {
     static constexpr std::uint8_t irrelevantBitMask = 0x0F;
     return std::bit_cast<std::uint8_t>(castlingRights) & irrelevantBitMask;
   }
+
+  [[nodiscard]] auto isKingUnderCheck(const std::uint64_t enemyKills,
+                                      const bool forWhites) const -> bool {
+    const std::array<std::uint64_t, Piece::KING + 1> &color =
+        forWhites ? this->whites : this->blacks;
+
+    return (color[Piece::KING] & enemyKills) != 0;
+  }
 };
 
 enum BoardSquare : std::uint8_t {
