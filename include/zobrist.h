@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bitboard.h"
 #include "sysifus.h"
 #include <array>
