@@ -9,6 +9,27 @@
 #include <cstdint>
 #include <cstdlib>
 
+static void
+moveRookIfCastling(std::array<std::uint64_t, Piece::KING + 1> &color,
+                   ChessBoard &board, const MoveCTX &ctx) {
+  const bool isKingSide =
+      board.whiteToMove ? ctx.to == BoardSquare::G1 : ctx.to == BoardSquare::G8;
+  std::uint32_t fromRook = 0;
+  std::uint32_t toRook = 0;
+
+  if (board.whiteToMove) {
+    fromRook = isKingSide ? BoardSquare::H1 : BoardSquare::A1;
+    toRook = isKingSide ? BoardSquare::F1 : BoardSquare::D1;
+  } else {
+    fromRook = isKingSide ? BoardSquare::H8 : BoardSquare::A8;
+    toRook = isKingSide ? BoardSquare::F8 : BoardSquare::D8;
+  }
+
+  color[Piece::ROOK] ^= (1ULL << fromRook) | (1ULL << toRook);
+  board.zobrist ^= ZOBRIST_PIECE[board.whiteToMove][Piece::ROOK][fromRook] ^
+                   ZOBRIST_PIECE[board.whiteToMove][Piece::ROOK][toRook];
+}
+
 static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
   std::array<std::uint64_t, Piece::KING + 1> &color =
       board.whiteToMove ? board.whites : board.blacks;
@@ -22,6 +43,12 @@ static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
 
   board.zobrist ^= ZOBRIST_PIECE[board.whiteToMove][ctx.original][ctx.from] ^
                    ZOBRIST_PIECE[board.whiteToMove][final][ctx.to];
+
+  const bool isCastling =
+      ctx.original == KING && std::abs(ctx.to - ctx.from) == 2;
+  if (isCastling) {
+    moveRookIfCastling(color, board, ctx);
+  }
 
   if (ctx.captured != Piece::NOTHING) {
     std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
