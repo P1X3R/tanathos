@@ -32,7 +32,7 @@ protected:
     board.whites.fill(0);
     board.blacks.fill(0);
     board.zobrist = 0;
-    board.halfmoveCounter = 0;
+    board.halfmoveClock = 0;
     board.enPassantSquare = 0; // No en passant by default
     board.whiteToMove = true;
     board.castlingRights.whiteKingSide = true;

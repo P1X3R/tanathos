@@ -108,7 +108,7 @@ TEST_F(ChessParsingTest, ChessBoardInitialFEN) {
   EXPECT_EQ(board.enPassantSquare, 0); // No en passant
 
   // Test halfmove clock
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 }
 
 TEST_F(ChessParsingTest, ChessBoardEmptyBoard) {
@@ -134,7 +134,7 @@ TEST_F(ChessParsingTest, ChessBoardEmptyBoard) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Halfmove clock
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 }
 
 TEST_F(ChessParsingTest, ChessBoardCustomFEN) {
@@ -165,7 +165,7 @@ TEST_F(ChessParsingTest, ChessBoardCustomFEN) {
   EXPECT_EQ(board.enPassantSquare, D3);
 
   // Halfmove clock
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 }
 
 TEST_F(ChessParsingTest, ChessBoardCastlingRightsVariations) {
@@ -205,7 +205,7 @@ TEST_F(ChessParsingTest, ChessBoardCastlingRightsVariations) {
   EXPECT_FALSE(board5.castlingRights.blackKingSide);
   EXPECT_FALSE(board5.castlingRights.blackQueenSide);
   EXPECT_EQ(board5.enPassantSquare, 0);
-  EXPECT_EQ(board5.halfmoveCounter, 5);
+  EXPECT_EQ(board5.halfmoveClock, 5);
 }
 
 TEST_F(ChessParsingTest, FromAlgebraicQuietMove) {

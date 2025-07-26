@@ -3,25 +3,25 @@
 #include "sysifus.h"
 #include <array>
 #include <bit>
-#include <bitset>
 #include <cstdint>
 #include <functional>
-#include <iostream>
 #include <numeric>
 #include <string>
+
+struct CastlingRights {
+  bool whiteKingSide : 1;
+  bool whiteQueenSide : 1;
+  bool blackKingSide : 1;
+  bool blackQueenSide : 1;
+};
 
 struct ChessBoard {
   std::array<std::uint64_t, Piece::KING + 1> whites, blacks;
   std::uint64_t zobrist;
-  std::uint32_t halfmoveCounter : 7;
+  std::uint32_t halfmoveClock : 7;
   std::uint32_t enPassantSquare : 6; // 0 means "no en passant"
   bool whiteToMove : 1;
-  struct CastlingRight {
-    bool whiteKingSide : 1;
-    bool whiteQueenSide : 1;
-    bool blackKingSide : 1;
-    bool blackQueenSide : 1;
-  } castlingRights;
+  CastlingRights castlingRights;
 
   ChessBoard() = default;
   explicit ChessBoard(const std::string &fen);

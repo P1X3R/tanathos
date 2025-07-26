@@ -45,7 +45,7 @@ TEST_F(MakeMoveTest, QuietPawnMove) {
   EXPECT_EQ(board.enPassantSquare, E3);
 
   // Verify halfmove counter reset (pawn move)
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -78,7 +78,7 @@ TEST_F(MakeMoveTest, CaptureMove) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter reset (capture)
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -110,7 +110,7 @@ TEST_F(MakeMoveTest, EnPassantCapture) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter reset
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -136,7 +136,7 @@ TEST_F(MakeMoveTest, PawnPromotion) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter reset (pawn move)
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -172,7 +172,7 @@ TEST_F(MakeMoveTest, CastlingKingSide) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter incremented (non-pawn, non-capture)
-  EXPECT_EQ(board.halfmoveCounter, 1);
+  EXPECT_EQ(board.halfmoveClock, 1);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -208,7 +208,7 @@ TEST_F(MakeMoveTest, CastlingQueenSide) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter incremented
-  EXPECT_EQ(board.halfmoveCounter, 1);
+  EXPECT_EQ(board.halfmoveClock, 1);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -241,7 +241,7 @@ TEST_F(MakeMoveTest, RookMoveAffectsCastling) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter incremented
-  EXPECT_EQ(board.halfmoveCounter, 1);
+  EXPECT_EQ(board.halfmoveClock, 1);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);
@@ -276,7 +276,7 @@ TEST_F(MakeMoveTest, CaptureRookAffectsCastling) {
   EXPECT_EQ(board.enPassantSquare, 0);
 
   // Verify halfmove counter reset (capture)
-  EXPECT_EQ(board.halfmoveCounter, 0);
+  EXPECT_EQ(board.halfmoveClock, 0);
 
   // Verify turn switched
   EXPECT_FALSE(board.whiteToMove);

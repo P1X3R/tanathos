@@ -138,9 +138,9 @@ void makeMove(ChessBoard &board, const MoveCTX &ctx) {
   movePieceToDestination(board, ctx);
 
   if (ctx.captured != Piece::NOTHING || ctx.original == Piece::PAWN) {
-    board.halfmoveCounter = 0;
+    board.halfmoveClock = 0;
   } else {
-    board.halfmoveCounter++;
+    board.halfmoveClock++;
   }
 
   updateEnPassantSquare(board, ctx);
