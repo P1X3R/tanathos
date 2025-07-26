@@ -10,7 +10,7 @@ ChessBoard::ChessBoard(const std::string &fen) {
   whites = {};
   blacks = {};
   zobrist = 0;
-  halfmoveCounter = 0;
+  halfmoveClock = 0;
   enPassantSquare = 0;
   whiteToMove = true;
   castlingRights = {
@@ -124,7 +124,7 @@ ChessBoard::ChessBoard(const std::string &fen) {
   // Parse halfmove clock
   pos = next + 1;
   next = fen.find(' ', pos);
-  halfmoveCounter = std::stoi(fen.substr(pos, next - pos));
+  halfmoveClock = std::stoi(fen.substr(pos, next - pos));
 }
 
 static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)

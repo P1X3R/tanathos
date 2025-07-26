@@ -198,11 +198,11 @@ static void undoMoveDebugAsserts(ChessBoard &board, const UndoCTX &ctx) {
 }
 
 void undoMove(ChessBoard &board, const UndoCTX &ctx) {
+  restoreByUndoCTX(board, ctx);
+
 #ifndef NDEBUG
   undoMoveDebugAsserts(board, ctx);
 #endif
-
-  restoreByUndoCTX(board, ctx);
 
   std::array<std::uint64_t, Piece::KING + 1> &color =
       board.whiteToMove ? board.whites : board.blacks;
@@ -214,7 +214,11 @@ void undoMove(ChessBoard &board, const UndoCTX &ctx) {
   color[final] &= ~(1ULL << ctx.move.to);
   color[ctx.move.original] |= 1ULL << ctx.move.from;
 
-  restoreRookPositionIfCastling(color, board, ctx);
+  const bool isCastling =
+      ctx.move.original == KING && std::abs(ctx.move.to - ctx.move.from) == 2;
+  if (isCastling) {
+    restoreRookPositionIfCastling(color, board, ctx);
+  }
 
   if (ctx.move.captured != Piece::NOTHING) {
     std::array<std::uint64_t, Piece::KING + 1> &enemyColor =

@@ -6,20 +6,6 @@
 #include <cstdint>
 #include <vector>
 
-// For debugging
-void printBitboard(const std::uint64_t bitboard) {
-  std::cout << "  A B C D E F G H\n";
-  for (int8_t rank = BOARD_LENGTH - 1; rank >= 0; rank--) {
-    std::cout << rank + 1 << ' ';
-    for (int8_t file = 0; file < BOARD_LENGTH; file++) {
-      const bool isBitSet =
-          (bitboard & (1ULL << ((rank * BOARD_LENGTH) + file))) != 0;
-      std::cout << (isBitSet ? '#' : '.') << ' ';
-    }
-    std::cout << '\n';
-  }
-}
-
 // --- GTest Test Fixture for MoveGenerator ---
 class MoveGeneratorTest : public ::testing::Test {
 protected:

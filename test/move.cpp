@@ -5,6 +5,20 @@
 #include <cstdint>
 #include <string>
 
+// For debugging
+void printBitboard(const std::uint64_t bitboard) {
+  std::cout << "  A B C D E F G H\n";
+  for (int8_t rank = BOARD_LENGTH - 1; rank >= 0; rank--) {
+    std::cout << rank + 1 << ' ';
+    for (int8_t file = 0; file < BOARD_LENGTH; file++) {
+      const bool isBitSet =
+          (bitboard & (1ULL << ((rank * BOARD_LENGTH) + file))) != 0;
+      std::cout << (isBitSet ? '#' : '.') << ' ';
+    }
+    std::cout << '\n';
+  }
+}
+
 class MakeMoveTest : public ::testing::Test {
 protected:
   // Helper to get piece at a square for verification (from ChessParsingTest)
@@ -31,8 +45,16 @@ TEST_F(MakeMoveTest, QuietPawnMove) {
   const std::string fen =
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   ChessBoard board(fen);
+  ChessBoard initialBoard = board;
   MoveCTX ctx = fromAlgebraic("e2e4", board);
-  std::uint64_t initialZobrist = board.zobrist;
+
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -51,20 +73,34 @@ TEST_F(MakeMoveTest, QuietPawnMove) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
-  EXPECT_EQ(board.zobrist ^ initialZobrist,
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+  EXPECT_EQ(board.zobrist ^ initialBoard.zobrist,
             ZOBRIST_PIECE[true][Piece::PAWN][E2] ^
                 ZOBRIST_PIECE[true][Piece::PAWN][E4] ^
                 ZOBRIST_EN_PASSANT_FILE[E3 % BOARD_LENGTH] ^
                 ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()] ^
                 ZOBRIST_TURN);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, CaptureMove) {
   const std::string fen = "8/8/8/3n4/4P3/8/8/8 w - - 0 1";
   ChessBoard board(fen);
   MoveCTX ctx = fromAlgebraic("e4d5", board);
-  std::uint64_t initialZobrist = board.zobrist;
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -84,7 +120,14 @@ TEST_F(MakeMoveTest, CaptureMove) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, EnPassantCapture) {
@@ -95,9 +138,18 @@ TEST_F(MakeMoveTest, EnPassantCapture) {
   board.whites[Piece::PAWN] |= (1ULL << E5);
   board.blacks[Piece::PAWN] |= (1ULL << D5);
   board.enPassantSquare = D6;
-  std::uint64_t initialZobrist = board.zobrist;
 
   MoveCTX ctx = fromAlgebraic("e5d6", board);
+
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
+
   makeMove(board, ctx);
 
   // Verify piece movement and capture
@@ -116,14 +168,29 @@ TEST_F(MakeMoveTest, EnPassantCapture) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, PawnPromotion) {
   const std::string fen = "8/6P1/8/8/8/8/8/8 w - - 0 1";
   ChessBoard board(fen);
   MoveCTX ctx = fromAlgebraic("g7g8q", board);
-  std::uint64_t initialZobrist = board.zobrist;
+
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -142,7 +209,14 @@ TEST_F(MakeMoveTest, PawnPromotion) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, CastlingKingSide) {
@@ -150,7 +224,15 @@ TEST_F(MakeMoveTest, CastlingKingSide) {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1";
   ChessBoard board(fen);
   MoveCTX ctx = fromAlgebraic("e1g1", board);
-  std::uint64_t initialZobrist = board.zobrist;
+
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -178,7 +260,14 @@ TEST_F(MakeMoveTest, CastlingKingSide) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, CastlingQueenSide) {
@@ -186,7 +275,15 @@ TEST_F(MakeMoveTest, CastlingQueenSide) {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1";
   ChessBoard board(fen);
   MoveCTX ctx = fromAlgebraic("e1c1", board);
-  std::uint64_t initialZobrist = board.zobrist;
+
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -214,7 +311,14 @@ TEST_F(MakeMoveTest, CastlingQueenSide) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, RookMoveAffectsCastling) {
@@ -222,7 +326,15 @@ TEST_F(MakeMoveTest, RookMoveAffectsCastling) {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq - 0 1";
   ChessBoard board(fen);
   MoveCTX ctx = fromAlgebraic("a1b1", board);
-  std::uint64_t initialZobrist = board.zobrist;
+
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -247,7 +359,14 @@ TEST_F(MakeMoveTest, RookMoveAffectsCastling) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
 
 TEST_F(MakeMoveTest, CaptureRookAffectsCastling) {
@@ -256,7 +375,15 @@ TEST_F(MakeMoveTest, CaptureRookAffectsCastling) {
   ChessBoard board(fen);
   MoveCTX ctx =
       fromAlgebraic("g1h8", board); // White knight captures black rook
-  std::uint64_t initialZobrist = board.zobrist;
+
+  ChessBoard initialBoard = board;
+  UndoCTX undo = {
+      .move = ctx,
+      .castlingRights = board.castlingRights,
+      .halfmoveClock = board.halfmoveClock,
+      .enPassantSquare = board.enPassantSquare,
+      .zobrist = board.zobrist,
+  };
 
   makeMove(board, ctx);
 
@@ -282,5 +409,12 @@ TEST_F(MakeMoveTest, CaptureRookAffectsCastling) {
   EXPECT_FALSE(board.whiteToMove);
 
   // Verify Zobrist hash updated
-  EXPECT_NE(board.zobrist, initialZobrist);
+  EXPECT_NE(board.zobrist, initialBoard.zobrist);
+
+  undoMove(board, undo);
+
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+    EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
+    EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
 }
