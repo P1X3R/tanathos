@@ -98,11 +98,9 @@ static void updateCastlingByRook(ChessBoard &board,
   }
 }
 
-// NOTE: The Zobrist hash is updated after the pseudo-legal moves are generated
-// This happens in another function
 static void updateCastlingRightsByMove(ChessBoard &board, const MoveCTX &ctx) {
-  // Clear previous castling rights
-  board.zobrist ^= ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
+  const std::uint64_t initialZobrist =
+      ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
 
   if (ctx.original == Piece::KING) {
     if (board.whiteToMove) {
@@ -119,6 +117,12 @@ static void updateCastlingRightsByMove(ChessBoard &board, const MoveCTX &ctx) {
   }
   if (ctx.captured == Piece::ROOK) {
     updateCastlingByRook(board, ctx.capturedSquare);
+  }
+
+  const std::uint64_t newZobrist =
+      ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
+  if (newZobrist != initialZobrist) {
+    board.zobrist ^= initialZobrist ^ newZobrist;
   }
 }
 

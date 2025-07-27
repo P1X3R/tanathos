@@ -137,9 +137,6 @@ void updateCastlingRights(ChessBoard &board, const std::uint64_t flat,
       board.castlingRights.blackQueenSide = false;
     }
   }
-
-  // Update Zobrist
-  board.zobrist ^= ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
 }
 
 void MoveGenerator::appendCastling(const ChessBoard &board,
