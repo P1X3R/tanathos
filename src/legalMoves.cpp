@@ -2,7 +2,6 @@
 #include "bitboard.h"
 #include "board.h"
 #include "sysifus.h" // for getPseudoLegal
-#include "zobrist.h"
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
@@ -101,10 +100,16 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   }
 }
 
-void updateCastlingRights(ChessBoard &board, const std::uint64_t flat,
-                          const bool forWhites,
-                          const std::uint64_t enemyAttacks) {
+auto generateCastlingAttackMask(const std::uint64_t flat, const bool forWhites,
+                                const std::uint64_t enemyAttacks)
+    -> CastlingRights {
   const std::uint64_t blockedSquares = enemyAttacks | flat;
+  CastlingRights castlingAttackMask = {
+      .whiteKingSide = true,
+      .whiteQueenSide = true,
+      .blackKingSide = true,
+      .blackQueenSide = true,
+  };
 
   struct {
     std::uint64_t kingSide;
@@ -124,32 +129,44 @@ void updateCastlingRights(ChessBoard &board, const std::uint64_t flat,
 
   if ((kingsPath.kingSide & blockedSquares) != 0) {
     if (forWhites) {
-      board.castlingRights.whiteKingSide = false;
+      castlingAttackMask.whiteKingSide = false;
     } else {
-      board.castlingRights.blackKingSide = false;
+      castlingAttackMask.blackKingSide = false;
     }
   }
 
   if ((kingsPath.queenSide & blockedSquares) != 0) {
     if (forWhites) {
-      board.castlingRights.whiteQueenSide = false;
+      castlingAttackMask.whiteQueenSide = false;
     } else {
-      board.castlingRights.blackQueenSide = false;
+      castlingAttackMask.blackQueenSide = false;
     }
   }
+
+  return castlingAttackMask;
 }
 
 void MoveGenerator::appendCastling(const ChessBoard &board,
+                                   const CastlingRights &castlingAttackMask,
                                    const bool forWhites) {
   std::uint64_t castleMask = 0;
+
   if (forWhites) {
-    castleMask =
-        (board.castlingRights.whiteKingSide ? (1ULL << BoardSquare::G1) : 0) |
-        (board.castlingRights.whiteQueenSide ? (1ULL << BoardSquare::C1) : 0);
+    const bool canKingSide =
+        board.castlingRights.whiteKingSide && castlingAttackMask.whiteKingSide;
+    const bool canQueenSide = board.castlingRights.whiteQueenSide &&
+                              castlingAttackMask.whiteQueenSide;
+
+    castleMask = (canKingSide ? (1ULL << BoardSquare::G1) : 0) |
+                 (canQueenSide ? (1ULL << BoardSquare::C1) : 0);
   } else {
-    castleMask =
-        (board.castlingRights.blackKingSide ? (1ULL << BoardSquare::G8) : 0) |
-        (board.castlingRights.blackQueenSide ? (1ULL << BoardSquare::C8) : 0);
+    const bool canKingSide =
+        board.castlingRights.blackKingSide && castlingAttackMask.blackKingSide;
+    const bool canQueenSide = board.castlingRights.blackQueenSide &&
+                              castlingAttackMask.blackQueenSide;
+
+    castleMask = (canKingSide ? (1ULL << BoardSquare::G8) : 0) |
+                 (canQueenSide ? (1ULL << BoardSquare::C8) : 0);
   }
 
   MoveCTX ctx = {

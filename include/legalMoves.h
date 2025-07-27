@@ -22,11 +22,8 @@ void appendContext(MoveCTX &ctx, bool forWhites,
                    std::uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
                    std::int32_t enPassantSquare);
 
-// Updates castling rights based on path obstruction only.
-// Assumes other castling conditions (king/rook haven't moved,
-// king not in check) are handled elsewhere.
-void updateCastlingRights(ChessBoard &board, std::uint64_t flat, bool forWhites,
-                          std::uint64_t enemyAttacks);
+auto generateCastlingAttackMask(std::uint64_t flat, bool forWhites,
+                                std::uint64_t enemyAttacks) -> CastlingRights;
 
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 
@@ -39,5 +36,6 @@ struct MoveGenerator {
 
   void generatePseudoLegal(const ChessBoard &board, bool forWhites);
 
-  void appendCastling(const ChessBoard &board, bool forWhites);
+  void appendCastling(const ChessBoard &board,
+                      const CastlingRights &castlingAttackMask, bool forWhites);
 };
