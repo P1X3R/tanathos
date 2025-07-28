@@ -100,10 +100,10 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   }
 }
 
-auto generateCastlingAttackMask(const std::uint64_t flat, const bool forWhites,
-                                const std::uint64_t enemyAttacks)
+auto generateCastlingAttackMask(const std::uint64_t flat,
+                                const std::uint64_t whiteKills,
+                                const std::uint64_t blackKills)
     -> CastlingRights {
-  const std::uint64_t blockedSquares = enemyAttacks | flat;
   CastlingRights castlingAttackMask = {
       .whiteKingSide = true,
       .whiteQueenSide = true,
@@ -122,26 +122,23 @@ auto generateCastlingAttackMask(const std::uint64_t flat, const bool forWhites,
                    (1ULL << BoardSquare::E1),
   };
 
-  const std::uint32_t rankShifting =
-      (BOARD_AREA - BOARD_LENGTH) * static_cast<std::uint32_t>(!forWhites);
+  const std::uint64_t blockedForWhites = flat | blackKills;
+
+  castlingAttackMask.whiteKingSide =
+      (kingsPath.kingSide & blockedForWhites) == 0;
+  castlingAttackMask.whiteQueenSide =
+      (kingsPath.queenSide & blockedForWhites) == 0;
+
+  const std::uint32_t rankShifting = BOARD_AREA - BOARD_LENGTH;
   kingsPath.kingSide <<= rankShifting;
   kingsPath.queenSide <<= rankShifting;
 
-  if ((kingsPath.kingSide & blockedSquares) != 0) {
-    if (forWhites) {
-      castlingAttackMask.whiteKingSide = false;
-    } else {
-      castlingAttackMask.blackKingSide = false;
-    }
-  }
+  const std::uint64_t blockedForBlacks = flat | whiteKills;
 
-  if ((kingsPath.queenSide & blockedSquares) != 0) {
-    if (forWhites) {
-      castlingAttackMask.whiteQueenSide = false;
-    } else {
-      castlingAttackMask.blackQueenSide = false;
-    }
-  }
+  castlingAttackMask.blackKingSide =
+      (kingsPath.kingSide & blockedForBlacks) == 0;
+  castlingAttackMask.blackQueenSide =
+      (kingsPath.queenSide & blockedForBlacks) == 0;
 
   return castlingAttackMask;
 }
