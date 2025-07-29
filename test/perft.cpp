@@ -29,12 +29,13 @@ protected:
 
     const bool forWhites = board.whiteToMove;
 
+    const CastlingRights castlingAttackMask = generateCastlingAttackMask(
+        flat, whitesGenerator.kills, blacksGenerator.kills);
+
     if (forWhites) {
-      updateCastlingRights(board, flat, true, blacksGenerator.kills);
-      whitesGenerator.appendCastling(board, true);
+      whitesGenerator.appendCastling(board, castlingAttackMask, true);
     } else {
-      updateCastlingRights(board, flat, false, whitesGenerator.kills);
-      blacksGenerator.appendCastling(board, false);
+      blacksGenerator.appendCastling(board, castlingAttackMask, false);
     }
 
     std::uint64_t nodes = 0;
