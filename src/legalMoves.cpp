@@ -71,8 +71,12 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
     while (typeBitboard != 0) {
       const auto fromSquare =
           static_cast<std::int8_t>(std::countr_zero(typeBitboard));
-      const Move pseudoLegalMoves = getPseudoLegal(
-          static_cast<Piece>(type), fromSquare, flat, forWhites, enemyFlat);
+      const std::uint64_t enemyFlatWithEnPassant =
+          type == Piece::PAWN ? enemyFlat | (1ULL << board.enPassantSquare)
+                              : enemyFlat;
+      const Move pseudoLegalMoves =
+          getPseudoLegal(static_cast<Piece>(type), fromSquare, flat, forWhites,
+                         enemyFlatWithEnPassant);
       std::uint64_t pseudoLegalBits =
           pseudoLegalMoves.quiet | pseudoLegalMoves.kills;
 
