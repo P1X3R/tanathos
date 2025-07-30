@@ -5,8 +5,6 @@
 #include <array>
 #include <bit>
 #include <cstdint>
-#include <functional>
-#include <numeric>
 #include <string>
 
 struct CastlingRights {
@@ -31,7 +29,12 @@ struct ChessBoard {
     const std::array<std::uint64_t, Piece::KING + 1> &color =
         forWhites ? this->whites : this->blacks;
 
-    return std::reduce(color.begin(), color.end(), 0, std::bit_or{});
+    std::uint64_t result = 0;
+    for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
+      result |= color[type];
+    }
+
+    return result;
   }
 
   [[nodiscard]] auto getCompressedCastlingRights() const -> std::uint8_t {
