@@ -62,7 +62,7 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   const std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
       forWhites ? board.blacks : board.whites;
 
-  const std::uint64_t flat = board.getFlat(forWhites);
+  const std::uint64_t friendlyFlat = board.getFlat(forWhites);
   const std::uint64_t enemyFlat = board.getFlat(!forWhites);
 
   for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
@@ -75,8 +75,8 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
           type == Piece::PAWN ? enemyFlat | (1ULL << board.enPassantSquare)
                               : enemyFlat;
       const Move pseudoLegalMoves =
-          getPseudoLegal(static_cast<Piece>(type), fromSquare, flat, forWhites,
-                         enemyFlatWithEnPassant);
+          getPseudoLegal(static_cast<Piece>(type), fromSquare, friendlyFlat,
+                         forWhites, enemyFlatWithEnPassant);
       std::uint64_t pseudoLegalBits =
           pseudoLegalMoves.quiet | pseudoLegalMoves.kills;
 
