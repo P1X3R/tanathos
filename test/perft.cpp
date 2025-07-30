@@ -47,11 +47,9 @@ protected:
 
       makeMove(board, move);
 
-      const std::uint64_t friendlyFlat = board.getFlat(forWhites);
-      const std::uint64_t enemyFlat = board.getFlat(!forWhites);
-
       if (!board.isKingInCheck(forWhites)) {
-        nodes += perft(depth - 1, board, friendlyFlat | enemyFlat);
+        nodes +=
+            perft(depth - 1, board, board.getFlat(true) | board.getFlat(false));
       }
 
       undoMove(board, undo);
@@ -66,7 +64,7 @@ TEST_F(PerftTest, StartingPosition) {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   ChessBoard startingBoard(startingPositionFEN);
 
-  EXPECT_EQ(perft(2, startingBoard,
+  EXPECT_EQ(perft(3, startingBoard,
                   startingBoard.getFlat(true) | startingBoard.getFlat(false)),
-            400);
+            8902);
 }
