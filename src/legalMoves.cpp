@@ -18,7 +18,7 @@ void appendContext(MoveCTX &ctx, const bool forWhites,
 
   const bool isEnPassantCapture =
       ctx.original == Piece::PAWN && enPassantSquare != 0 &&
-      std::abs(ctx.from - enPassantCapture) == 1 &&
+      std::abs(ctx.from - enPassantCapture) == 1 && ctx.to == enPassantSquare &&
       (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0;
 
   const std::uint64_t toBit = 1ULL << ctx.to;
@@ -92,6 +92,10 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
             .captured = Piece::NOTHING,
             .promotion = Piece::NOTHING,
         };
+
+        if (ctx.from == 31 && ctx.original == Piece::PAWN) {
+          std::cout << ctx.to << '\n';
+        }
 
         appendContext(ctx, forWhites, enemyColor, enemyFlat, pseudoLegal,
                       static_cast<std::int8_t>(board.enPassantSquare));
