@@ -5,20 +5,6 @@
 #include <cstdint>
 #include <string>
 
-// For debugging
-void printBitboard(const std::uint64_t bitboard) {
-  std::cout << "  A B C D E F G H\n";
-  for (int8_t rank = BOARD_LENGTH - 1; rank >= 0; rank--) {
-    std::cout << rank + 1 << ' ';
-    for (int8_t file = 0; file < BOARD_LENGTH; file++) {
-      const bool isBitSet =
-          (bitboard & (1ULL << ((rank * BOARD_LENGTH) + file))) != 0;
-      std::cout << (isBitSet ? '#' : '.') << ' ';
-    }
-    std::cout << '\n';
-  }
-}
-
 class MakeMoveTest : public ::testing::Test {
 protected:
   // Helper to get piece at a square for verification (from ChessParsingTest)
