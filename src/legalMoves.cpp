@@ -93,10 +93,6 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
             .promotion = Piece::NOTHING,
         };
 
-        if (ctx.from == 31 && ctx.original == Piece::PAWN) {
-          std::cout << ctx.to << '\n';
-        }
-
         appendContext(ctx, forWhites, enemyColor, enemyFlat, pseudoLegal,
                       static_cast<std::int8_t>(board.enPassantSquare));
 
