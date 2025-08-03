@@ -1,4 +1,5 @@
 #include "board.h"
+#include "legalMoves.h"
 #include <iostream>
 
 inline void printBitboard(const std::uint64_t bitboard) {
@@ -26,3 +27,5 @@ inline void printBitboard(const std::uint64_t bitboard) {
  * @param board The ChessBoard struct containing the piece bitboards.
  */
 void printChessBoard(const ChessBoard &board);
+
+void printMoveCTX(const MoveCTX &move);

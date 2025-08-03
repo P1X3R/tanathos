@@ -1,5 +1,6 @@
 #include "bitboard.h"
 #include "board.h"
+#include "legalMoves.h"
 #include "sysifus.h"
 #include <cstdint>
 #include <iostream>
@@ -70,4 +71,32 @@ void printChessBoard(const ChessBoard &board) {
   }
   // Print the footer with file labels (a-h)
   std::cout << "    a   b   c   d   e   f   g   h  " << '\n';
+}
+
+auto operator<<(std::ostream &ostrm, Piece piece) -> std::ostream & {
+  switch (piece) {
+  case Piece::PAWN:
+    return ostrm << "PAWN";
+  case Piece::KNIGHT:
+    return ostrm << "KNIGHT";
+  case Piece::BISHOP:
+    return ostrm << "BISHOP";
+  case Piece::ROOK:
+    return ostrm << "ROOK";
+  case Piece::QUEEN:
+    return ostrm << "QUEEN";
+  case Piece::KING:
+    return ostrm << "KING";
+  case Piece::NOTHING:
+    return ostrm << "NOTHING";
+  default:
+    return ostrm << "UNKNOWN";
+  }
+}
+
+void printMoveCTX(const MoveCTX &move) {
+  std::cout << "MoveCTX from:" << move.from << " to:" << move.to
+            << " capturedSquare:" << move.capturedSquare
+            << " original:" << move.original << " captured:" << move.captured
+            << " promotion:" << move.promotion << '\n';
 }
