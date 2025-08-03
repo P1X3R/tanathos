@@ -108,41 +108,61 @@ auto generateCastlingAttackMask(const std::uint64_t flat,
                                 const std::uint64_t whiteKills,
                                 const std::uint64_t blackKills)
     -> CastlingRights {
+
   CastlingRights castlingAttackMask = {
-      .whiteKingSide = true,
-      .whiteQueenSide = true,
-      .blackKingSide = true,
-      .blackQueenSide = true,
+      .whiteKingSide = false,
+      .whiteQueenSide = false,
+      .blackKingSide = false,
+      .blackQueenSide = false,
   };
 
-  struct {
-    std::uint64_t kingSide;
-    std::uint64_t queenSide;
-  } kingsPath = {
-      .kingSide = (1ULL << BoardSquare::F1) | (1ULL << BoardSquare::G1) |
-                  (1ULL << BoardSquare::E1),
-
-      .queenSide = (1ULL << BoardSquare::D1) | (1ULL << BoardSquare::C1) |
-                   (1ULL << BoardSquare::E1),
-  };
-
-  const std::uint64_t blockedForWhites = flat | blackKills;
+  // White Castling Checks
+  // King-side (O-O)
+  static constexpr std::uint64_t whiteKingSidePiecePath =
+      (1ULL << BoardSquare::F1) | (1ULL << BoardSquare::G1);
+  static constexpr std::uint64_t whiteKingSideAttackPath =
+      (1ULL << BoardSquare::E1) | (1ULL << BoardSquare::F1) |
+      (1ULL << BoardSquare::G1);
 
   castlingAttackMask.whiteKingSide =
-      (kingsPath.kingSide & blockedForWhites) == 0;
+      ((flat & whiteKingSidePiecePath) == 0) &&
+      ((blackKills & whiteKingSideAttackPath) == 0);
+
+  // Queen-side (O-O-O)
+  static constexpr std::uint64_t whiteQueenSidePiecePath =
+      (1ULL << BoardSquare::B1) | (1ULL << BoardSquare::C1) |
+      (1ULL << BoardSquare::D1);
+  static constexpr std::uint64_t whiteQueenSideAttackPath =
+      (1ULL << BoardSquare::E1) | (1ULL << BoardSquare::D1) |
+      (1ULL << BoardSquare::C1);
+
   castlingAttackMask.whiteQueenSide =
-      (kingsPath.queenSide & blockedForWhites) == 0;
+      ((flat & whiteQueenSidePiecePath) == 0) &&
+      ((blackKills & whiteQueenSideAttackPath) == 0);
 
-  const std::uint32_t rankShifting = BOARD_AREA - BOARD_LENGTH;
-  kingsPath.kingSide <<= rankShifting;
-  kingsPath.queenSide <<= rankShifting;
-
-  const std::uint64_t blockedForBlacks = flat | whiteKills;
+  // Black Castling Checks
+  // King-side (O-O)
+  static constexpr std::uint64_t blackKingSidePiecePath =
+      (1ULL << BoardSquare::F8) | (1ULL << BoardSquare::G8);
+  static constexpr std::uint64_t blackKingSideAttackPath =
+      (1ULL << BoardSquare::E8) | (1ULL << BoardSquare::F8) |
+      (1ULL << BoardSquare::G8);
 
   castlingAttackMask.blackKingSide =
-      (kingsPath.kingSide & blockedForBlacks) == 0;
+      ((flat & blackKingSidePiecePath) == 0) &&
+      ((whiteKills & blackKingSideAttackPath) == 0);
+
+  // Queen-side (O-O-O)
+  static constexpr std::uint64_t blackQueenSidePiecePath =
+      (1ULL << BoardSquare::B8) | (1ULL << BoardSquare::C8) |
+      (1ULL << BoardSquare::D8);
+  static constexpr std::uint64_t blackQueenSideAttackPath =
+      (1ULL << BoardSquare::E8) | (1ULL << BoardSquare::D8) |
+      (1ULL << BoardSquare::C8);
+
   castlingAttackMask.blackQueenSide =
-      (kingsPath.queenSide & blockedForBlacks) == 0;
+      ((flat & blackQueenSidePiecePath) == 0) &&
+      ((whiteKills & blackQueenSideAttackPath) == 0);
 
   return castlingAttackMask;
 }

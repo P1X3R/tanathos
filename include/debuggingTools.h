@@ -1,3 +1,5 @@
+#pragma once
+
 #include "board.h"
 #include "legalMoves.h"
 #include <iostream>

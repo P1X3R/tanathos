@@ -30,7 +30,7 @@ constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 // For only one color
 struct MoveGenerator {
   std::vector<MoveCTX> pseudoLegal;
-  std::uint64_t kills; // Useful for castling updating
+  std::uint64_t kills = 0; // Useful for castling updating
 
   MoveGenerator() { pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION); }
 
