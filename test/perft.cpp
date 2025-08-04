@@ -47,10 +47,11 @@ protected:
       blacksGenerator.appendCastling(board, castlingAttackMask, false);
     }
 
-    MoveGenerator &generator = forWhites ? whitesGenerator : blacksGenerator;
+    const MoveGenerator &generator =
+        forWhites ? whitesGenerator : blacksGenerator;
 
     for (const auto &move : generator.pseudoLegal) {
-      UndoCTX undo = {
+      const UndoCTX undo = {
           .move = move,
           .castlingRights = board.castlingRights,
           .halfmoveClock = board.halfmoveClock,
@@ -113,10 +114,11 @@ protected:
       blacksGenerator.appendCastling(board, castlingAttackMask, false);
     }
 
-    MoveGenerator &generator = forWhites ? whitesGenerator : blacksGenerator;
+    const MoveGenerator &generator =
+        forWhites ? whitesGenerator : blacksGenerator;
 
     for (const auto &move : generator.pseudoLegal) {
-      UndoCTX undo = {
+      const UndoCTX undo = {
           .move = move,
           .castlingRights = board.castlingRights,
           .halfmoveClock = board.halfmoveClock,
@@ -127,7 +129,7 @@ protected:
       makeMove(board, move);
 
       if (!board.isKingInCheck(forWhites)) {
-        PerftResult subResult = perft(depth - 1, board);
+        const PerftResult subResult = perft(depth - 1, board);
         totalResult.nodes += subResult.nodes;
         totalResult.captures += subResult.captures;
         totalResult.promotions += subResult.promotions;
