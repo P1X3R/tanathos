@@ -11,7 +11,23 @@ struct PerftResult {
   std::uint64_t captures = 0;
   std::uint64_t promotions = 0;
   std::uint64_t checks = 0;
+  std::uint64_t enPassants = 0;
+  std::uint64_t castles = 0;
 };
+
+static auto isEnPassantCapture(const ChessBoard &board, const MoveCTX &move,
+                               const bool forWhites) -> bool {
+  const std::int32_t enPassantCapture =
+      forWhites ? board.enPassantSquare - BOARD_LENGTH
+                : board.enPassantSquare + BOARD_LENGTH;
+  const std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
+      forWhites ? board.blacks : board.whites;
+
+  return move.original == Piece::PAWN && board.enPassantSquare != 0 &&
+         std::abs(move.from - enPassantCapture) == 1 &&
+         move.to == board.enPassantSquare &&
+         (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0;
+}
 
 class PerftTest : public ::testing::Test {
 protected:
@@ -57,6 +73,12 @@ protected:
         }
         if (board.isKingInCheck(!forWhites)) {
           result.checks++;
+        }
+        if (isEnPassantCapture(board, move, forWhites)) {
+          result.enPassants++;
+        }
+        if (move.original == KING && std::abs(move.to - move.from) == 2) {
+          result.castles++;
         }
       }
 
@@ -113,6 +135,8 @@ protected:
         totalResult.captures += subResult.captures;
         totalResult.promotions += subResult.promotions;
         totalResult.checks += subResult.checks;
+        totalResult.enPassants += subResult.enPassants;
+        totalResult.castles += subResult.castles;
       }
 
       undoMove(board, undo);
@@ -133,9 +157,35 @@ TEST_F(PerftTest, StartingPosition) {
   std::cout << "Captures: " << result.captures << '\n';
   std::cout << "Promotions: " << result.promotions << '\n';
   std::cout << "Checks: " << result.checks << '\n';
+  std::cout << "En passants: " << result.enPassants << '\n';
+  std::cout << "Castles: " << result.castles << '\n';
 
   EXPECT_EQ(result.nodes, 197281);
   EXPECT_EQ(result.captures, 1576);
   EXPECT_EQ(result.promotions, 0);
   EXPECT_EQ(result.checks, 469);
+  EXPECT_EQ(result.enPassants, 0);
+  EXPECT_EQ(result.castles, 0);
+}
+
+TEST_F(PerftTest, Kiwipete) {
+  static const std::string fen =
+      "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 3 2";
+  ChessBoard board(fen);
+
+  const PerftResult result = perft(1, board);
+
+  std::cout << "Nodes: " << result.nodes << '\n';
+  std::cout << "Captures: " << result.captures << '\n';
+  std::cout << "Promotions: " << result.promotions << '\n';
+  std::cout << "Checks: " << result.checks << '\n';
+  std::cout << "En passants: " << result.enPassants << '\n';
+  std::cout << "Castles: " << result.castles << '\n';
+
+  EXPECT_EQ(result.nodes, 48);
+  EXPECT_EQ(result.captures, 8);
+  EXPECT_EQ(result.promotions, 0);
+  EXPECT_EQ(result.checks, 0);
+  EXPECT_EQ(result.enPassants, 0);
+  EXPECT_EQ(result.castles, 2);
 }
