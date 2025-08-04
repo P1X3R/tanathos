@@ -12,20 +12,19 @@ void appendContext(MoveCTX &ctx, const bool forWhites,
                    std::vector<MoveCTX> &pseudoLegal,
                    const std::int32_t enPassantSquare) {
   // Adjust capturedSquare for en passant capture
-  const std::int32_t enPassantCapture = forWhites
-                                            ? enPassantSquare - BOARD_LENGTH
-                                            : enPassantSquare + BOARD_LENGTH;
+  const std::int32_t capturedPawnSquare = forWhites
+                                              ? enPassantSquare - BOARD_LENGTH
+                                              : enPassantSquare + BOARD_LENGTH;
 
   const bool isEnPassantCapture =
       ctx.original == Piece::PAWN && enPassantSquare != 0 &&
-      std::abs(ctx.from - enPassantCapture) == 1 && ctx.to == enPassantSquare &&
-      (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0;
+      std::abs(ctx.from - capturedPawnSquare) == 1 && ctx.to == enPassantSquare;
 
   const std::uint64_t toBit = 1ULL << ctx.to;
 
   ctx.capturedSquare = ctx.to;
   if (isEnPassantCapture) {
-    ctx.capturedSquare = enPassantCapture;
+    ctx.capturedSquare = capturedPawnSquare;
     ctx.to = enPassantSquare;
     ctx.captured = Piece::PAWN;
   } else if ((enemyFlat & toBit) != 0) {

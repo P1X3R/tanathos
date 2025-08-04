@@ -17,16 +17,13 @@ struct PerftResult {
 
 static auto isEnPassantCapture(const ChessBoard &board, const MoveCTX &move,
                                const bool forWhites) -> bool {
-  const std::int32_t enPassantCapture =
+  const std::int32_t capturedPawnSquare =
       forWhites ? board.enPassantSquare - BOARD_LENGTH
                 : board.enPassantSquare + BOARD_LENGTH;
-  const std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
-      forWhites ? board.blacks : board.whites;
 
   return move.original == Piece::PAWN && board.enPassantSquare != 0 &&
-         std::abs(move.from - enPassantCapture) == 1 &&
-         move.to == board.enPassantSquare &&
-         (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0;
+         std::abs(move.from - capturedPawnSquare) == 1 &&
+         move.to == board.enPassantSquare;
 }
 
 class PerftTest : public ::testing::Test {
@@ -173,7 +170,7 @@ TEST_F(PerftTest, Kiwipete) {
       "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 3 2";
   ChessBoard board(fen);
 
-  const PerftResult result = perft(1, board);
+  const PerftResult result = perft(2, board);
 
   std::cout << "Nodes: " << result.nodes << '\n';
   std::cout << "Captures: " << result.captures << '\n';
@@ -182,10 +179,10 @@ TEST_F(PerftTest, Kiwipete) {
   std::cout << "En passants: " << result.enPassants << '\n';
   std::cout << "Castles: " << result.castles << '\n';
 
-  EXPECT_EQ(result.nodes, 48);
-  EXPECT_EQ(result.captures, 8);
+  EXPECT_EQ(result.nodes, 2039);
+  EXPECT_EQ(result.captures, 351);
   EXPECT_EQ(result.promotions, 0);
-  EXPECT_EQ(result.checks, 0);
-  EXPECT_EQ(result.enPassants, 0);
-  EXPECT_EQ(result.castles, 2);
+  EXPECT_EQ(result.checks, 3);
+  EXPECT_EQ(result.enPassants, 1);
+  EXPECT_EQ(result.castles, 91);
 }
