@@ -72,7 +72,7 @@ private:
     if (depth > 0) {
       // Assuming ChessBoard has a perft function that returns uint64_t
       const std::uint64_t nodes = perft(depth, board, true);
-      std::cout << "\nNodes: " << nodes << "\n";
+      std::cout << "\nNodes searched: " << nodes << "\n";
     } else {
       std::cout << "info string Invalid or missing perft depth\n";
     }
