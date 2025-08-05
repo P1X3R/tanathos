@@ -25,8 +25,8 @@ void appendContext(MoveCTX &ctx, bool forWhites,
                    std::uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
                    std::int32_t enPassantSquare);
 
-auto generateCastlingAttackMask(std::uint64_t flat, std::uint64_t whiteKills,
-                                std::uint64_t blackKills) -> CastlingRights;
+auto generateCastlingAttackMask(std::uint64_t flat, const ChessBoard &board)
+    -> CastlingRights;
 
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 

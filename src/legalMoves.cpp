@@ -2,6 +2,7 @@
 #include "bitboard.h"
 #include "board.h"
 #include "sysifus.h" // for getPseudoLegal
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
@@ -11,7 +12,6 @@ void appendContext(MoveCTX &ctx, const bool forWhites,
                    const std::uint64_t enemyFlat,
                    std::vector<MoveCTX> &pseudoLegal,
                    const std::int32_t enPassantSquare) {
-  // Adjust capturedSquare for en passant capture
   const std::int32_t capturedPawnSquare = forWhites
                                               ? enPassantSquare - BOARD_LENGTH
                                               : enPassantSquare + BOARD_LENGTH;
@@ -103,67 +103,57 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
   }
 }
 
+static auto checkCastlingPath(const std::uint64_t piecePath,
+                              const std::array<std::int32_t, 3> &attackPath,
+                              const std::uint64_t flatBoard, const bool isBlack,
+                              const bool castlingRight, const ChessBoard &board)
+    -> bool {
+  if (!castlingRight) {
+    return false;
+  }
+
+  return std::ranges::none_of(attackPath,
+                              [&](const std::int32_t square) -> bool {
+                                return board.isSquareUnderAttack(square,
+                                                                 isBlack);
+                              }) &&
+         (flatBoard & piecePath) == 0;
+}
+
+struct CastlingPath {
+  uint64_t piecePath;
+  std::array<int32_t, 3> attackPath;
+};
+
 auto generateCastlingAttackMask(const std::uint64_t flat,
-                                const std::uint64_t whiteKills,
-                                const std::uint64_t blackKills)
-    -> CastlingRights {
+                                const ChessBoard &board) -> CastlingRights {
+  static constexpr std::array<CastlingPath, 4> CASTLING_PATHS = {{
+      // White king-side
+      {.piecePath = (1ULL << F1) | (1ULL << G1), .attackPath = {E1, F1, G1}},
+      // White queen-side
+      {.piecePath = (1ULL << B1) | (1ULL << C1) | (1ULL << D1),
+       .attackPath = {E1, D1, C1}},
+      // Black king-side
+      {.piecePath = (1ULL << F8) | (1ULL << G8), .attackPath = {E8, F8, G8}},
+      // Black queen-side
+      {.piecePath = (1ULL << B8) | (1ULL << C8) | (1ULL << D8),
+       .attackPath = {E8, D8, C8}},
+  }};
 
-  CastlingRights castlingAttackMask = {
-      .whiteKingSide = false,
-      .whiteQueenSide = false,
-      .blackKingSide = false,
-      .blackQueenSide = false,
+  return {
+      .whiteKingSide = checkCastlingPath(
+          CASTLING_PATHS[0].piecePath, CASTLING_PATHS[0].attackPath, flat,
+          false, board.castlingRights.whiteKingSide, board),
+      .whiteQueenSide = checkCastlingPath(
+          CASTLING_PATHS[1].piecePath, CASTLING_PATHS[1].attackPath, flat,
+          false, board.castlingRights.whiteQueenSide, board),
+      .blackKingSide = checkCastlingPath(
+          CASTLING_PATHS[2].piecePath, CASTLING_PATHS[2].attackPath, flat, true,
+          board.castlingRights.blackKingSide, board),
+      .blackQueenSide = checkCastlingPath(
+          CASTLING_PATHS[3].piecePath, CASTLING_PATHS[3].attackPath, flat, true,
+          board.castlingRights.blackQueenSide, board),
   };
-
-  // White Castling Checks
-  // King-side (O-O)
-  static constexpr std::uint64_t whiteKingSidePiecePath =
-      (1ULL << BoardSquare::F1) | (1ULL << BoardSquare::G1);
-  static constexpr std::uint64_t whiteKingSideAttackPath =
-      (1ULL << BoardSquare::E1) | (1ULL << BoardSquare::F1) |
-      (1ULL << BoardSquare::G1);
-
-  castlingAttackMask.whiteKingSide =
-      ((flat & whiteKingSidePiecePath) == 0) &&
-      ((blackKills & whiteKingSideAttackPath) == 0);
-
-  // Queen-side (O-O-O)
-  static constexpr std::uint64_t whiteQueenSidePiecePath =
-      (1ULL << BoardSquare::B1) | (1ULL << BoardSquare::C1) |
-      (1ULL << BoardSquare::D1);
-  static constexpr std::uint64_t whiteQueenSideAttackPath =
-      (1ULL << BoardSquare::E1) | (1ULL << BoardSquare::D1) |
-      (1ULL << BoardSquare::C1);
-
-  castlingAttackMask.whiteQueenSide =
-      ((flat & whiteQueenSidePiecePath) == 0) &&
-      ((blackKills & whiteQueenSideAttackPath) == 0);
-
-  // Black Castling Checks
-  // King-side (O-O)
-  static constexpr std::uint64_t blackKingSidePiecePath =
-      (1ULL << BoardSquare::F8) | (1ULL << BoardSquare::G8);
-  static constexpr std::uint64_t blackKingSideAttackPath =
-      (1ULL << BoardSquare::E8) | (1ULL << BoardSquare::F8) |
-      (1ULL << BoardSquare::G8);
-
-  castlingAttackMask.blackKingSide =
-      ((flat & blackKingSidePiecePath) == 0) &&
-      ((whiteKills & blackKingSideAttackPath) == 0);
-
-  // Queen-side (O-O-O)
-  static constexpr std::uint64_t blackQueenSidePiecePath =
-      (1ULL << BoardSquare::B8) | (1ULL << BoardSquare::C8) |
-      (1ULL << BoardSquare::D8);
-  static constexpr std::uint64_t blackQueenSideAttackPath =
-      (1ULL << BoardSquare::E8) | (1ULL << BoardSquare::D8) |
-      (1ULL << BoardSquare::C8);
-
-  castlingAttackMask.blackQueenSide =
-      ((flat & blackQueenSidePiecePath) == 0) &&
-      ((whiteKills & blackQueenSideAttackPath) == 0);
-
-  return castlingAttackMask;
 }
 
 void MoveGenerator::appendCastling(const ChessBoard &board,
