@@ -2,6 +2,7 @@
 #include "board.h"
 #include "legalMoves.h"
 #include "sysifus.h"
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -212,4 +213,29 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   }
 
   return ctx;
+}
+
+auto moveToUCI(const MoveCTX &move) -> std::string {
+  const Coordinate fromCoord = {
+      .rank = static_cast<std::int8_t>(move.from / BOARD_LENGTH),
+      .file = static_cast<std::int8_t>(move.from % BOARD_LENGTH),
+  };
+
+  const Coordinate toCoord = {
+      .rank = static_cast<std::int8_t>(move.to / BOARD_LENGTH),
+      .file = static_cast<std::int8_t>(move.to % BOARD_LENGTH),
+  };
+
+  std::string result = {static_cast<char>('a' + fromCoord.file),
+                        static_cast<char>('1' + fromCoord.rank),
+                        static_cast<char>('a' + toCoord.file),
+                        static_cast<char>('1' + toCoord.rank)};
+
+  if (move.promotion != Piece::NOTHING) {
+    static const std::array<char, Piece::KING + 1> pieceTypeCharacters = {
+        ' ', 'n', 'b', 'r', 'q', ' '};
+    result += pieceTypeCharacters[move.promotion];
+  }
+
+  return result;
 }

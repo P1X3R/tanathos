@@ -31,5 +31,3 @@ inline void printBitboard(const std::uint64_t bitboard) {
 void printChessBoard(const ChessBoard &board);
 
 void printMoveCTX(const MoveCTX &move);
-
-void printUCIMove(const MoveCTX &move);

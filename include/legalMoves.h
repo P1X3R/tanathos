@@ -3,6 +3,7 @@
 #include "board.h"
 #include "sysifus.h"
 #include <cstdint>
+#include <string>
 #include <vector>
 
 struct MoveCTX {
@@ -16,6 +17,8 @@ struct MoveCTX {
 
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
     -> MoveCTX;
+
+auto moveToUCI(const MoveCTX &move) -> std::string;
 
 void appendContext(MoveCTX &ctx, bool forWhites,
                    const std::array<std::uint64_t, Piece::KING + 1> &enemyColor,
