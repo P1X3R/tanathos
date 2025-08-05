@@ -100,3 +100,14 @@ void printMoveCTX(const MoveCTX &move) {
             << " original:" << move.original << " captured:" << move.captured
             << " promotion:" << move.promotion << '\n';
 }
+
+void printUCIMove(const MoveCTX &move) {
+  const std::uint32_t fromRank = move.from / BOARD_LENGTH;
+  const std::uint32_t toRank = move.to / BOARD_LENGTH;
+
+  const std::uint32_t fromFile = move.from % BOARD_LENGTH;
+  const std::uint32_t toFile = move.to % BOARD_LENGTH;
+
+  std::cout << 'a' + fromFile << fromRank + 1 << 'a' + toFile << toRank + 1
+            << '\n';
+}
