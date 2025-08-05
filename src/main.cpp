@@ -72,7 +72,7 @@ private:
     if (depth > 0) {
       // Assuming ChessBoard has a perft function that returns uint64_t
       const std::uint64_t nodes = perft(depth, board, true);
-      std::cout << "info nodes " << nodes << "\n";
+      std::cout << "\nNodes: " << nodes << "\n";
     } else {
       std::cout << "info string Invalid or missing perft depth\n";
     }
@@ -109,5 +109,4 @@ public:
 auto main() -> int {
   UCI engine;
   engine.loop();
-  return 0;
 }
