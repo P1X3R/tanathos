@@ -475,7 +475,6 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
     board.zobrist = initialHash;
 
     // Generate all legal moves
-    std::vector<MoveCTX> moves;
     MoveGenerator generator;
     generator.generatePseudoLegal(board, board.whiteToMove);
     const CastlingRights castlingAttackMask = generateCastlingAttackMask(
@@ -483,9 +482,9 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
     generator.appendCastling(board, castlingAttackMask, board.whiteToMove);
 
     // Test each move
-    for (const auto &move : moves) {
+    for (const auto &move : generator.pseudoLegal) {
       // Save state for undo
-      UndoCTX undo = {
+      const UndoCTX undo = {
           .move = move,
           .castlingRights = board.castlingRights,
           .halfmoveClock = board.halfmoveClock,
@@ -495,6 +494,11 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
 
       // Make move
       makeMove(board, move);
+
+      if (board.isKingInCheck(!board.whiteToMove)) {
+        undoMove(board, undo);
+        continue;
+      }
 
       // Property 1: Hash should change (unless it's a null move or something
       // very special)
