@@ -13,7 +13,7 @@ auto ChessBoard::isSquareUnderAttack(const std::int32_t square,
                             .file = static_cast<int8_t>(square % BOARD_LENGTH)};
 
   std::uint64_t pawnAttacksFromSquare =
-      generatePawnCaptures(coord, attackingSidePieces[Piece::PAWN], byWhites);
+      generatePawnCaptures(coord, attackingSidePieces[Piece::PAWN], !byWhites);
   if (pawnAttacksFromSquare != 0) {
     return true;
   }
