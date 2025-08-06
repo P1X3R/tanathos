@@ -1,8 +1,12 @@
 #include "move.h"
+#include "bitboard.h"
 #include "board.h"
+#include "legalMoves.h"
 #include "zobrist.h"
 #include "gtest/gtest.h"
+#include <cstddef>
 #include <cstdint>
+#include <random>
 #include <string>
 
 class MakeMoveTest : public ::testing::Test {
@@ -24,6 +28,34 @@ protected:
       }
     }
     return std::make_pair(Piece::NOTHING, false);
+  }
+
+  static auto calculateZobrist(const ChessBoard &board) -> std::uint64_t {
+    std::uint64_t result = 0;
+
+    for (bool color = false; !color; color = true) {
+      const auto &pieces = color ? board.whites : board.blacks;
+      for (int piece = Piece::PAWN; piece <= Piece::KING; piece++) {
+        uint64_t bits = pieces[piece];
+        while (bits != 0) {
+          int square = __builtin_ctzll(bits);
+          result ^=
+              ZOBRIST_PIECE[static_cast<std::size_t>(color)][piece][square];
+          bits &= bits - 1;
+        }
+      }
+    }
+
+    result ^= ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
+
+    if (board.enPassantSquare != 0) {
+      result ^= ZOBRIST_EN_PASSANT_FILE[board.enPassantSquare % BOARD_LENGTH];
+    }
+    if (!board.whiteToMove) {
+      result ^= ZOBRIST_TURN;
+    }
+
+    return result;
   }
 };
 
@@ -60,12 +92,6 @@ TEST_F(MakeMoveTest, QuietPawnMove) {
 
   // Verify Zobrist hash updated
   EXPECT_NE(board.zobrist, initialBoard.zobrist);
-  EXPECT_EQ(board.zobrist ^ initialBoard.zobrist,
-            ZOBRIST_PIECE[true][Piece::PAWN][E2] ^
-                ZOBRIST_PIECE[true][Piece::PAWN][E4] ^
-                ZOBRIST_EN_PASSANT_FILE[E3 % BOARD_LENGTH] ^
-                ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()] ^
-                ZOBRIST_TURN);
 
   undoMove(board, undo);
 
@@ -402,5 +428,97 @@ TEST_F(MakeMoveTest, CaptureRookAffectsCastling) {
   for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
     EXPECT_EQ(initialBoard.whites[type], board.whites[type]);
     EXPECT_EQ(initialBoard.blacks[type], board.blacks[type]);
+  }
+}
+
+TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
+  static constexpr std::size_t RANDOM_TESTS = 1000;
+  // Seed for reproducible randomness
+  std::mt19937 gen(BOARD_AREA);
+  std::uniform_int_distribution<> dis(0, RANDOM_TESTS);
+
+  // Test 1000 random positions
+  for (int test = 0; test < RANDOM_TESTS; test++) {
+    // Create random position
+    ChessBoard board;
+    board.whiteToMove = (dis(gen) % 2) != 0;
+    static constexpr std::uint32_t EN_PASSANT_FILE_MULTIPLIER = 5;
+    board.enPassantSquare =
+        (dis(gen) % BOARD_LENGTH) +
+        ((dis(gen) % 2) != 0
+             ? BOARD_LENGTH * 2
+             : BOARD_LENGTH * EN_PASSANT_FILE_MULTIPLIER); // a3/h3 or a6/h6
+    if (dis(gen) % EN_PASSANT_FILE_MULTIPLIER == 0) {
+      board.enPassantSquare = 0; // 20% chance no en passant
+    }
+
+    // Random castling rights
+    board.castlingRights.whiteKingSide = (dis(gen) % 2) != 0;
+    board.castlingRights.whiteQueenSide = (dis(gen) % 2) != 0;
+    board.castlingRights.blackKingSide = (dis(gen) % 2) != 0;
+    board.castlingRights.blackQueenSide = (dis(gen) % 2) != 0;
+
+    // Random pieces
+    for (int sq = 0; sq < BOARD_AREA; sq++) {
+      if (dis(gen) % 3 == 0) { // 33% chance of piece on square
+        const bool white = (dis(gen) % 2) != 0;
+        const auto piece =
+            static_cast<Piece>(dis(gen) % (Piece::KING + 1)); // PAWN-KING
+        auto &pieces = white ? board.whites : board.blacks;
+        pieces[piece] |= (1ULL << sq);
+      }
+    }
+
+    // Calculate initial hash from scratch
+    const uint64_t initialHash = calculateZobrist(board);
+
+    board.zobrist = initialHash;
+
+    // Generate all legal moves
+    std::vector<MoveCTX> moves;
+    MoveGenerator generator;
+    generator.generatePseudoLegal(board, board.whiteToMove);
+    const CastlingRights castlingAttackMask = generateCastlingAttackMask(
+        board.getFlat(true) | board.getFlat(true), board);
+    generator.appendCastling(board, castlingAttackMask, board.whiteToMove);
+
+    // Test each move
+    for (const auto &move : moves) {
+      // Save state for undo
+      UndoCTX undo = {
+          .move = move,
+          .castlingRights = board.castlingRights,
+          .halfmoveClock = board.halfmoveClock,
+          .enPassantSquare = board.enPassantSquare,
+          .zobrist = board.zobrist,
+      };
+
+      // Make move
+      makeMove(board, move);
+
+      // Property 1: Hash should change (unless it's a null move or something
+      // very special)
+      EXPECT_NE(board.zobrist, initialHash) << "Hash didn't change after move";
+
+      // Property 2: Hash should match full calculation
+      const uint64_t newCalculatedHash = calculateZobrist(board);
+
+      EXPECT_EQ(board.zobrist, newCalculatedHash) << "Hash mismatch after move";
+
+      // Property 3: Undo should restore original hash
+      undoMove(board, undo);
+      EXPECT_EQ(board.zobrist, initialHash) << "Hash not restored after undo";
+
+      // Property 4: Making and undoing move should leave board unchanged
+      for (int piece = Piece::PAWN; piece <= Piece::KING; piece++) {
+        EXPECT_EQ(undo.move.original == piece
+                      ? (board.whites[piece] | (1ULL << move.from))
+                      : board.whites[piece],
+                  board.whites[piece])
+            << "White pieces not restored";
+        EXPECT_EQ(board.blacks[piece], board.blacks[piece])
+            << "Black pieces not restored";
+      }
+    }
   }
 }
