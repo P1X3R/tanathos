@@ -11,8 +11,8 @@ struct MoveCTX {
   std::uint32_t to : 6 = 0;   // The square where the moved piece shall land
   // The square where the captured piece was. Useful for en passant handling
   std::uint32_t capturedSquare : 6 = 0;
-  Piece original = Piece::NOTHING, captured = Piece::NOTHING,
-        promotion = Piece::NOTHING;
+  Piece original : 3 = Piece::NOTHING, captured : 3 = Piece::NOTHING,
+        promotion : 3 = Piece::NOTHING;
 };
 
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
