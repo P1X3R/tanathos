@@ -1,7 +1,5 @@
-#include "./legalMoves.cpp"
 #include "./move.cpp"
 #include "./parsing.cpp"
-#include "./perft.cpp"
 #include "gtest/gtest.h"
 
 auto main(int argc, char **argv) -> int {
