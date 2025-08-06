@@ -1,25 +1,9 @@
 #include "board.h"
-// #include "bitboard.h"
 #include "legalMoves.h"
 #include "gtest/gtest.h"
 #include <array>
 #include <cstdint>
-#include <iostream>
 #include <string>
-
-// For debugging
-void printBitboard(const std::uint64_t bitboard, const char icon) {
-  std::cout << "  A B C D E F G H\n";
-  for (int8_t rank = BOARD_LENGTH - 1; rank >= 0; rank--) {
-    std::cout << rank + 1 << ' ';
-    for (int8_t file = 0; file < BOARD_LENGTH; file++) {
-      const bool isBitSet =
-          (bitboard & (1ULL << ((rank * BOARD_LENGTH) + file))) != 0;
-      std::cout << (isBitSet ? icon : '.') << ' ';
-    }
-    std::cout << '\n';
-  }
-}
 
 // --- GTest Test Fixture for ChessBoard and MoveCTX parsing ---
 class ChessParsingTest : public ::testing::Test {
@@ -240,9 +224,6 @@ TEST_F(ChessParsingTest, FromAlgebraicCaptureMove) {
 
 TEST_F(ChessParsingTest, FromAlgebraicEnPassantCapture) {
   // Board state: White pawn on E5, Black pawn on D5, en passant target D6
-  const std::string fen =
-      "8/8/3P4/4P3/8/8/8/8 w - d6 0 1"; // Fen does not accurately represent the
-                                        // piece
   // on D5 in this specific FEN, but this test focuses on the en passant logic
   // Let's modify the FEN for accuracy:
   const std::string accurate_fen_for_enpassant =
