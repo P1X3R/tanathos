@@ -30,7 +30,7 @@ moveRookIfCastling(std::array<std::uint64_t, Piece::KING + 1> &color,
                    ZOBRIST_PIECE[board.whiteToMove][Piece::ROOK][toRook];
 }
 
-static void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
+void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx) {
   std::array<std::uint64_t, Piece::KING + 1> &color =
       board.whiteToMove ? board.whites : board.blacks;
 

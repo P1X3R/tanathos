@@ -147,11 +147,13 @@ static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
   return std::make_pair(Piece::NOTHING, false);
 }
 
-void insertMoveInfo(MoveCTX &partial, const ChessBoard &board) {
-  // Get original piece type and color
-  std::pair<Piece, bool> pieceInfo = getPieceAt(partial.from, board);
-  partial.original = pieceInfo.first;
-  const bool isPieceWhite = pieceInfo.second;
+void insertMoveInfo(MoveCTX &partial, const ChessBoard &board,
+                    const bool getOriginalType, bool isPieceWhite) {
+  if (getOriginalType) {
+    std::pair<Piece, bool> pieceInfo = getPieceAt(partial.from, board);
+    partial.original = pieceInfo.first;
+    isPieceWhite = pieceInfo.second;
+  }
 
   // Get captured piece info depending on en passant
   const std::int32_t capturedPawnSquare =
@@ -189,8 +191,7 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   ctx.from = (fromRank * BOARD_LENGTH) + fromFile;
   ctx.to = (toRank * BOARD_LENGTH) + toFile;
 
-  bool isPieceWhite = true;
-  insertMoveInfo(ctx, board, isPieceWhite);
+  insertMoveInfo(ctx, board, true, false);
 
   // Get promotions
   static constexpr std::uint32_t algebraicLengthIfPromotion = 5;

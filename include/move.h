@@ -11,5 +11,6 @@ struct UndoCTX {
   std::uint64_t zobrist;
 };
 
+void movePieceToDestination(ChessBoard &board, const MoveCTX &ctx);
 void makeMove(ChessBoard &board, const MoveCTX &ctx);
 void undoMove(ChessBoard &board, const UndoCTX &ctx);

@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <string>
 
+struct MoveGenerator;
+
 enum class GameOutcome : std::uint8_t { STILL, DRAW, WHITES_WIN, BLACKS_WIN };
 
 struct CastlingRights {
@@ -61,8 +63,9 @@ public:
       -> GameOutcome;
 
 private:
-  [[nodiscard]] auto
-  isDraw(const std::array<std::uint64_t, 3> &zobristHistory) const -> bool;
+  [[nodiscard]] auto isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
+                            bool isEnemyColorWhite) -> bool;
+  [[nodiscard]] auto checkStalemate(bool generateForWhites) -> bool;
 };
 
 enum BoardSquare : std::uint8_t {
