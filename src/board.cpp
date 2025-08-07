@@ -64,3 +64,27 @@ auto ChessBoard::isSquareUnderAttack(const std::int32_t square,
 
   return false; // No attacking pieces found
 }
+
+auto ChessBoard::isDraw(
+    const std::array<std::uint64_t, 3> &zobristHistory) const -> bool {
+  static constexpr std::uint8_t fiftyMoveCounterThreshold = 100;
+  if (halfmoveClock >= fiftyMoveCounterThreshold) {
+    return true;
+  }
+
+  if (zobristHistory.size() >= 3) {
+    std::uint8_t count = 0;
+    for (std::uint8_t i = zobristHistory.size() - 1; i >= 0; i--) {
+      if (zobristHistory[i] != zobrist) {
+        continue;
+      }
+
+      count++;
+      if (count == 3) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}

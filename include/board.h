@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <string>
 
+enum class GameOutcome : std::uint8_t { STILL, DRAW, WHITES_WIN, BLACKS_WIN };
+
 struct CastlingRights {
   bool whiteKingSide : 1;
   bool whiteQueenSide : 1;
@@ -13,7 +15,8 @@ struct CastlingRights {
   bool blackQueenSide : 1;
 };
 
-struct ChessBoard {
+class ChessBoard {
+public:
   std::array<std::uint64_t, Piece::KING + 1> whites, blacks;
   std::uint64_t zobrist;
   std::uint32_t halfmoveClock : 7;
@@ -52,6 +55,14 @@ struct ChessBoard {
     return isSquareUnderAttack(std::countr_zero(color[Piece::KING]),
                                !kingIsWhite);
   }
+
+  [[nodiscard]] auto
+  getOutcome(const std::array<std::uint64_t, 3> &zobristHistory) const
+      -> GameOutcome;
+
+private:
+  [[nodiscard]] auto
+  isDraw(const std::array<std::uint64_t, 3> &zobristHistory) const -> bool;
 };
 
 enum BoardSquare : std::uint8_t {
