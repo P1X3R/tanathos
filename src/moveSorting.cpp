@@ -58,3 +58,32 @@ auto MoveCTX::score(
 
   return score;
 }
+
+[[nodiscard]] auto Searching::pickMove(std::vector<MoveCTX> &moves,
+                                       std::uint8_t moveIndex,
+                                       const ChessBoard &board,
+                                       std::uint8_t depth) -> const MoveCTX * {
+  if (moves.empty()) {
+    return nullptr;
+  }
+
+  std::int32_t bestMoveScore = -1;
+  std::int16_t bestMoveIndex = -1;
+
+  for (std::size_t i = moveIndex; i < moves.size(); i++) {
+    const MoveCTX &move = moves[i];
+    const std::uint16_t moveScore =
+        move.score(TT, killers, history, depth, board);
+
+    if (moveScore > bestMoveScore) {
+      bestMoveScore = moveScore;
+      bestMoveIndex = static_cast<std::int16_t>(i);
+    }
+  }
+
+  if (bestMoveIndex != -1) {
+    std::swap(moves[bestMoveIndex], moves[moveIndex]);
+  }
+
+  return &moves[moveIndex];
+}

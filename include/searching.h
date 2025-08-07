@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bitboard.h"
+#include "board.h"
 #include "legalMoves.h"
 #include <bit>
 #include <cstdint>
@@ -67,4 +68,9 @@ private:
   TranspositionTable TT;
 
   std::array<std::array<MoveCTX, MAX_DEPTH>, 2> killers;
+  std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA> history;
+
+  [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,
+                              std::uint8_t moveIndex, const ChessBoard &board,
+                              std::uint8_t depth) -> const MoveCTX *;
 };
