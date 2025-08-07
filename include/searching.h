@@ -56,6 +56,9 @@ private:
   std::vector<TTEntry> Table;
 };
 
+constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
+    100, 300, 300, 500, 900, 0, 0};
+
 class Searching {
 public:
   Searching();

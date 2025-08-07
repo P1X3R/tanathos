@@ -62,6 +62,8 @@ public:
   getOutcome(const std::array<std::uint64_t, 3> &zobristHistory) const
       -> GameOutcome;
 
+  [[nodiscard]] auto evaluate() const -> std::int32_t;
+
 private:
   [[nodiscard]] auto isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
                             bool isEnemyColorWhite) -> bool;

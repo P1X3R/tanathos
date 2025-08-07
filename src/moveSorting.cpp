@@ -12,8 +12,6 @@ enum MoveOrderBonus : std::uint16_t {
 };
 
 constexpr std::uint16_t VICTIM_SCALING_FACTOR = 10;
-constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
-    100, 300, 300, 500, 900, 0, 0};
 
 static constexpr std::array<std::array<std::uint16_t, Piece::KING + 1>,
                             Piece::KING + 1>
