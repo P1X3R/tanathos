@@ -8,19 +8,29 @@
 
 struct TTEntry {
   std::uint64_t key = 0; // Zobrist
-  std::int32_t score = 0;
-  std::int8_t depth : 3 = 0;
+  std::int16_t score = 0;
+  std::uint8_t depth = 0;
   enum BoundFlag : std::uint8_t {
     EXACT = 0,      // Exact score
     LOWERBOUND = 1, // score >= true value (alpha cut-off)
     UPPERBOUND = 2  // score <= true value (beta cut-off)
-  } flag : 2 = EXACT;
+  } flag = EXACT;
   MoveCTX bestMove;
 };
 
 class TranspositionTable {
 public:
-  TranspositionTable() { Table.reserve(TT_SIZE); }
+  TranspositionTable() { Table.resize(TT_SIZE); }
+
+  auto probe(std::uint64_t key) -> TTEntry * {
+    TTEntry *entry = &Table[key & INDEX_MASK];
+
+    if (entry->key == key) {
+      return entry;
+    }
+
+    return nullptr;
+  }
 
 private:
   static constexpr std::size_t TT_SIZE_MB = 10;
