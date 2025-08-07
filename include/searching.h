@@ -22,7 +22,7 @@ class TranspositionTable {
 public:
   TranspositionTable() { Table.resize(TT_SIZE); }
 
-  auto probe(std::uint64_t key) -> TTEntry * {
+  auto probe(const std::uint64_t key) -> TTEntry * {
     TTEntry *entry = &Table[key & INDEX_MASK];
 
     if (entry->key == key) {
@@ -30,6 +30,13 @@ public:
     }
 
     return nullptr;
+  }
+
+  void store(const TTEntry &newEntry) {
+    TTEntry *entry = &Table[newEntry.key & INDEX_MASK];
+    if (entry->key != newEntry.key || newEntry.depth >= entry->depth) {
+      *entry = newEntry;
+    }
   }
 
 private:
