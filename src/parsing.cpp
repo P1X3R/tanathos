@@ -147,9 +147,36 @@ static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
   return std::make_pair(Piece::NOTHING, false);
 }
 
+static auto getMoveInfo(MoveCTX &partial, const ChessBoard &board) {
+  // Get original piece type and color
+  std::pair<Piece, bool> pieceInfo = getPieceAt(partial.from, board);
+  partial.original = pieceInfo.first;
+  const bool forWhites = pieceInfo.second;
+
+  // Get captured piece info depending on en passant
+  const std::int32_t capturedPawnSquare =
+      forWhites ? board.enPassantSquare - BOARD_LENGTH
+                : board.enPassantSquare + BOARD_LENGTH;
+
+  const bool isEnPassantCapture =
+      partial.original == Piece::PAWN && board.enPassantSquare != 0 &&
+      std::abs(partial.from - capturedPawnSquare) == 1 &&
+      partial.to == board.enPassantSquare;
+
+  if (isEnPassantCapture) {
+    partial.capturedSquare = capturedPawnSquare;
+    partial.captured = Piece::PAWN;
+  } else {
+    partial.capturedSquare = partial.to;
+    partial.captured = getPieceAt(partial.to, board).first;
+  }
+
+  return partial;
+}
+
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
     -> MoveCTX {
-  MoveCTX ctx{};
+  MoveCTX ctx;
 
   // Get piece position and landing square
   const std::string_view fromCoordinates = algebraic.substr(0, 2);
@@ -164,31 +191,7 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   ctx.from = (fromRank * BOARD_LENGTH) + fromFile;
   ctx.to = (toRank * BOARD_LENGTH) + toFile;
 
-  // Get original piece type and color
-  std::pair<Piece, bool> pieceInfo = getPieceAt(ctx.from, board);
-  ctx.original = pieceInfo.first;
-  const bool forWhites = pieceInfo.second;
-
-  // Get captured piece info depending on en passant
-  const std::int32_t enPassantCapture =
-      forWhites ? board.enPassantSquare - BOARD_LENGTH
-                : board.enPassantSquare + BOARD_LENGTH;
-
-  const std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
-      forWhites ? board.blacks : board.whites;
-
-  const bool isEnPassantCapture =
-      ctx.original == Piece::PAWN && board.enPassantSquare != 0 &&
-      std::abs(ctx.from - enPassantCapture) == 1 &&
-      (enemyColor[Piece::PAWN] & (1ULL << enPassantCapture)) != 0;
-
-  if (isEnPassantCapture) {
-    ctx.capturedSquare = enPassantCapture;
-    ctx.captured = Piece::PAWN;
-  } else {
-    ctx.capturedSquare = ctx.to;
-    ctx.captured = getPieceAt(ctx.to, board).first;
-  }
+  getMoveInfo(ctx, board);
 
   // Get promotions
   static constexpr std::uint32_t algebraicLengthIfPromotion = 5;
