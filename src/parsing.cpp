@@ -147,16 +147,16 @@ static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
   return std::make_pair(Piece::NOTHING, false);
 }
 
-static auto getMoveInfo(MoveCTX &partial, const ChessBoard &board) {
+void insertMoveInfo(MoveCTX &partial, const ChessBoard &board) {
   // Get original piece type and color
   std::pair<Piece, bool> pieceInfo = getPieceAt(partial.from, board);
   partial.original = pieceInfo.first;
-  const bool forWhites = pieceInfo.second;
+  const bool isPieceWhite = pieceInfo.second;
 
   // Get captured piece info depending on en passant
   const std::int32_t capturedPawnSquare =
-      forWhites ? board.enPassantSquare - BOARD_LENGTH
-                : board.enPassantSquare + BOARD_LENGTH;
+      isPieceWhite ? board.enPassantSquare - BOARD_LENGTH
+                   : board.enPassantSquare + BOARD_LENGTH;
 
   const bool isEnPassantCapture =
       partial.original == Piece::PAWN && board.enPassantSquare != 0 &&
@@ -170,8 +170,6 @@ static auto getMoveInfo(MoveCTX &partial, const ChessBoard &board) {
     partial.capturedSquare = partial.to;
     partial.captured = getPieceAt(partial.to, board).first;
   }
-
-  return partial;
 }
 
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
@@ -191,7 +189,8 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   ctx.from = (fromRank * BOARD_LENGTH) + fromFile;
   ctx.to = (toRank * BOARD_LENGTH) + toFile;
 
-  getMoveInfo(ctx, board);
+  bool isPieceWhite = true;
+  insertMoveInfo(ctx, board, isPieceWhite);
 
   // Get promotions
   static constexpr std::uint32_t algebraicLengthIfPromotion = 5;
@@ -242,3 +241,4 @@ auto moveToUCI(const MoveCTX &move) -> std::string {
 
   return result;
 }
+
