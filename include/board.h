@@ -58,6 +58,8 @@ public:
                                !kingIsWhite);
   }
 
+  [[nodiscard]] auto insufficientMaterial() -> bool;
+
   [[nodiscard]] auto
   getOutcome(const std::array<std::uint64_t, 3> &zobristHistory) const
       -> GameOutcome;

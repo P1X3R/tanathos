@@ -158,6 +158,64 @@ auto ChessBoard::checkStalemate(const bool generateForWhites) -> bool {
   return false;
 }
 
+auto ChessBoard::insufficientMaterial() -> bool {
+  // Check for insufficient material
+  auto countPieces = [](const std::array<std::uint64_t, Piece::KING + 1> &color)
+      -> std::uint8_t {
+    std::uint8_t count = 0;
+    for (std::uint32_t type = Piece::PAWN; type <= Piece::QUEEN; type++) {
+      count += std::popcount(color[type]);
+    }
+    return count;
+  };
+
+  const std::uint8_t whitePieceCount = countPieces(whites);
+  const std::uint8_t blackPieceCount = countPieces(blacks);
+
+  // King vs King
+  if (whitePieceCount == 1 && blackPieceCount == 1) {
+    return true;
+  }
+
+  // King vs King + Knight or Bishop
+  if (whitePieceCount == 1 && blackPieceCount == 2) {
+    if (std::popcount(blacks[Piece::KNIGHT]) == 1 ||
+        std::popcount(blacks[Piece::BISHOP]) == 1) {
+      return true;
+    }
+  }
+  if (blackPieceCount == 1 && whitePieceCount == 2) {
+    if (std::popcount(whites[Piece::KNIGHT]) == 1 ||
+        std::popcount(whites[Piece::BISHOP]) == 1) {
+      return true;
+    }
+  }
+
+  // King + Bishop vs King + Bishop (same color)
+  if (whitePieceCount == 2 && blackPieceCount == 2) {
+    if (std::popcount(whites[Piece::BISHOP]) == 1 &&
+        std::popcount(blacks[Piece::BISHOP]) == 1) {
+      // Check if bishops are on same color
+      const std::uint64_t whiteBishop = whites[Piece::BISHOP];
+      const std::uint64_t blackBishop = blacks[Piece::BISHOP];
+      const std::uint32_t whiteSquare = std::countr_zero(whiteBishop);
+      const std::uint32_t blackSquare = std::countr_zero(blackBishop);
+      const bool whiteIsLight =
+          ((whiteSquare / BOARD_LENGTH) + (whiteSquare % BOARD_LENGTH)) % 2 ==
+          0;
+      const bool blackIsLight =
+          ((blackSquare / BOARD_LENGTH) + (blackSquare % BOARD_LENGTH)) % 2 ==
+          0;
+
+      if (whiteIsLight == blackIsLight) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 auto ChessBoard::isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
                         const bool isEnemyColorWhite) -> bool {
   static constexpr std::uint8_t fiftyMoveCounterThreshold = 100;
@@ -176,6 +234,9 @@ auto ChessBoard::isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
         }
       }
     }
+  }
+  if (insufficientMaterial()) {
+    return true;
   }
   // Optimization: Only check stalemate for the enemy moves of the node, because
   // if node's color has no legal moves it'll just return the evaluation.
