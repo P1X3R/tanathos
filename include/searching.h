@@ -22,8 +22,8 @@ class TranspositionTable {
 public:
   TranspositionTable() { Table.resize(TT_SIZE); }
 
-  auto probe(const std::uint64_t key) -> TTEntry * {
-    TTEntry *entry = &Table[key & INDEX_MASK];
+  [[nodiscard]] auto probe(const std::uint64_t key) const -> const TTEntry * {
+    const TTEntry *entry = &Table[key & INDEX_MASK];
 
     if (entry->key == key) {
       return entry;
@@ -65,4 +65,6 @@ public:
 
 private:
   TranspositionTable TT;
+
+  std::array<std::array<MoveCTX, MAX_DEPTH>, 2> killers;
 };
