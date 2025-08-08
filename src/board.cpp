@@ -1,7 +1,5 @@
 #include "board.h"
-#include "legalMoves.h"
 #include "luts.h"
-#include "move.h"
 #include "sysifus.h"
 #include <bit>
 #include <cstdint>
@@ -67,95 +65,6 @@ auto ChessBoard::isSquareUnderAttack(const std::int32_t square,
   }
 
   return false; // No attacking pieces found
-}
-
-static auto hasLegalMoves(std::uint64_t pseudoLegalBits,
-                          const std::int8_t square, const std::uint32_t type,
-                          ChessBoard &board, const bool forWhites) -> bool {
-  auto testMoveLegality = [&](const MoveCTX &ctx) -> bool {
-    const UndoCTX undo = {
-        .move = ctx,
-        .castlingRights = board.castlingRights,
-        .halfmoveClock = board.halfmoveClock,
-        .enPassantSquare = board.enPassantSquare,
-        .zobrist = board.zobrist,
-    };
-
-    movePieceToDestination(board, ctx);
-    const bool isMoveLegal = !board.isKingInCheck(forWhites);
-    undoMove(board, undo);
-
-    return isMoveLegal;
-  };
-
-  auto checkForPromotions = [&](MoveCTX &ctx) -> bool {
-    const auto toRank = static_cast<std::int8_t>(ctx.to / BOARD_LENGTH);
-    const std::int8_t promotionRank = forWhites ? 7 : 0;
-    if (ctx.original == Piece::PAWN && toRank == promotionRank) {
-      for (std::uint32_t promotion = Piece::KNIGHT; promotion <= Piece::QUEEN;
-           promotion++) {
-        ctx.promotion = static_cast<Piece>(promotion);
-
-        if (testMoveLegality(ctx)) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    return testMoveLegality(ctx);
-  };
-
-  while (pseudoLegalBits != 0) {
-    MoveCTX ctx = {
-        .from = static_cast<std::uint32_t>(square),
-        .to = static_cast<std::uint32_t>(std::countr_zero(pseudoLegalBits)),
-        .capturedSquare = 0,
-        .original = static_cast<Piece>(type),
-        .captured = Piece::NOTHING,
-        .promotion = Piece::NOTHING,
-    };
-
-    // This inserts the capturedSquare and captured type
-    insertMoveInfo(ctx, board, false, forWhites);
-
-    if (checkForPromotions(ctx)) {
-      return true;
-    }
-
-    pseudoLegalBits &= pseudoLegalBits - 1;
-  }
-
-  return false;
-}
-
-auto ChessBoard::checkStalemate(const bool generateForWhites) -> bool {
-  const std::uint64_t friendlyFlat = getFlat(generateForWhites);
-  const std::uint64_t enemyFlat = getFlat(!generateForWhites);
-
-  const auto &color = generateForWhites ? whites : blacks;
-  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
-    std::uint64_t bitboard = color[type];
-
-    while (bitboard != 0) {
-      const auto square = static_cast<std::int8_t>(std::countr_zero(bitboard));
-      const Move pseudoLegalMoves =
-          getPseudoLegal(static_cast<Piece>(type), square, friendlyFlat,
-                         generateForWhites, enemyFlat);
-      std::uint64_t pseudoLegalBits =
-          pseudoLegalMoves.quiet | pseudoLegalMoves.kills;
-
-      if (hasLegalMoves(pseudoLegalBits, square, type, *this,
-                        generateForWhites)) {
-        return true;
-      }
-
-      bitboard &= bitboard - 1;
-    }
-  }
-
-  return false;
 }
 
 auto ChessBoard::insufficientMaterial() -> bool {
@@ -236,11 +145,6 @@ auto ChessBoard::isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
     }
   }
   if (insufficientMaterial()) {
-    return true;
-  }
-  // Optimization: Only check stalemate for the enemy moves of the node, because
-  // if node's color has no legal moves it'll just return the evaluation.
-  if (checkStalemate(isEnemyColorWhite)) {
     return true;
   }
 

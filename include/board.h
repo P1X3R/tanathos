@@ -64,11 +64,11 @@ public:
 
   [[nodiscard]] auto evaluate() const -> std::int32_t;
 
-private:
   [[nodiscard]] auto isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
                             bool isEnemyColorWhite) -> bool;
+
+private:
   [[nodiscard]] auto insufficientMaterial() -> bool;
-  [[nodiscard]] auto checkStalemate(bool generateForWhites) -> bool;
 };
 
 enum BoardSquare : std::uint8_t {
