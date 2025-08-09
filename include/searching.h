@@ -69,8 +69,12 @@ public:
   auto operator=(const Searching &) -> Searching & = default;
   ~Searching();
 
+  ChessBoard board;
+
 private:
   TranspositionTable TT;
+
+  std::uint8_t zobristHistoryIndex = 0;
 
   std::array<std::array<MoveCTX, MAX_DEPTH>, 2> killers;
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
@@ -79,4 +83,9 @@ private:
   [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,
                               std::uint8_t moveIndex, const ChessBoard &board,
                               std::uint8_t depth) -> const MoveCTX *;
+
+  void appendZobristHistory() {
+    zobristHistory[zobristHistoryIndex] = board.zobrist;
+    zobristHistoryIndex = (zobristHistoryIndex + 1) % ZOBRIST_HISTORY_SIZE;
+  }
 };
