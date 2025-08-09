@@ -11,7 +11,7 @@
 
 struct TTEntry {
   std::uint64_t key = 0; // Zobrist
-  std::int16_t score = 0;
+  std::int32_t score = 0;
   std::uint8_t depth = 0;
   enum BoundFlag : std::uint8_t {
     EXACT = 0,      // Exact score
@@ -86,7 +86,8 @@ private:
 
   [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,
                               std::uint8_t moveIndex, const ChessBoard &board,
-                              std::uint8_t depth) -> const MoveCTX *;
+                              std::uint8_t depth, const MoveCTX *entryBestMove)
+      -> const MoveCTX *;
 
   void appendZobristHistory() {
     zobristHistory[zobristHistoryIndex] = board.zobrist;

@@ -31,17 +31,15 @@ static constexpr std::array<std::array<std::uint16_t, Piece::KING + 1>,
     }();
 
 auto MoveCTX::score(
-    const TranspositionTable &TranspositionT,
+    const MoveCTX *entryBestMove,
     const std::array<std::array<MoveCTX, MAX_DEPTH>, 2> &killers,
     const std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>
         &history,
     const std::uint8_t depth, const ChessBoard &board) const -> std::uint16_t {
   std::uint16_t score = 0;
 
-  if (const auto *ttEntry = TranspositionT.probe(board.zobrist)) {
-    if (ttEntry->bestMove == *this) {
-      score += TRANSPOSITION_TABLE;
-    }
+  if (entryBestMove != nullptr && *entryBestMove == *this) {
+    score += TRANSPOSITION_TABLE;
   }
   if (captured != Piece::NOTHING) {
     score += CAPTURES + MVV_LVA[original][captured];
@@ -57,10 +55,10 @@ auto MoveCTX::score(
   return score;
 }
 
-[[nodiscard]] auto Searching::pickMove(std::vector<MoveCTX> &moves,
-                                       std::uint8_t moveIndex,
-                                       const ChessBoard &board,
-                                       std::uint8_t depth) -> const MoveCTX * {
+[[nodiscard]] auto
+Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
+                    const ChessBoard &board, std::uint8_t depth,
+                    const MoveCTX *entryBestMove) -> const MoveCTX * {
   if (moves.empty()) {
     return nullptr;
   }
@@ -71,7 +69,7 @@ auto MoveCTX::score(
   for (std::size_t i = moveIndex; i < moves.size(); i++) {
     const MoveCTX &move = moves[i];
     const std::uint16_t moveScore =
-        move.score(TT, killers, history, depth, board);
+        move.score(entryBestMove, killers, history, depth, board);
 
     if (moveScore > bestMoveScore) {
       bestMoveScore = moveScore;

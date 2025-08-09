@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-class TranspositionTable;
 static constexpr std::uint8_t MAX_DEPTH = 4;
 
 struct MoveCTX {
@@ -26,7 +25,7 @@ struct MoveCTX {
   }
 
   [[nodiscard]] auto
-  score(const TranspositionTable &TranspositionT,
+  score(const MoveCTX *entryBestMove,
         const std::array<std::array<MoveCTX, MAX_DEPTH>, 2> &killers,
         const std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>
             &history,
