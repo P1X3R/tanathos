@@ -154,6 +154,7 @@ void Searching::searchAllMoves(MoveGenerator &generator,
     appendZobristHistory();
 
     if (board.isKingInCheck(forWhites)) {
+      popZobristHistory();
       undoMove(board, undo);
       continue;
     }
