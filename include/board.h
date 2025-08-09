@@ -58,10 +58,6 @@ public:
                                !kingIsWhite);
   }
 
-  [[nodiscard]] auto
-  getOutcome(const std::array<std::uint64_t, 3> &zobristHistory) const
-      -> GameOutcome;
-
   [[nodiscard]] auto evaluate() const -> std::int32_t;
 
   [[nodiscard]] auto isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
