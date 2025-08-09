@@ -32,7 +32,7 @@ static constexpr std::array<std::array<std::uint16_t, Piece::KING + 1>,
 
 auto MoveCTX::score(
     const MoveCTX *entryBestMove,
-    const std::array<std::array<MoveCTX, MAX_DEPTH>, 2> &killers,
+    const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> &killers,
     const std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>
         &history,
     const std::uint8_t depth, const ChessBoard &board) const -> std::uint16_t {

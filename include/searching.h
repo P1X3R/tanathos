@@ -52,8 +52,7 @@ private:
       TT_SIZE_MB * MB_TO_BYTE_SCALE_FACTOR;
   // Round down to power of 2
   static constexpr std::size_t TT_SIZE =
-      1ULL << (BOARD_AREA - 1 -
-               std::countr_zero(TT_SIZE_BYTES / sizeof(TTEntry)));
+      std::bit_floor(TT_SIZE_BYTES / sizeof(TTEntry));
   static constexpr std::uint64_t INDEX_MASK = TT_SIZE - 1;
 
   std::vector<TTEntry> Table;
@@ -64,12 +63,12 @@ constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
 
 class Searching {
 public:
-  Searching();
+  Searching() = default;
   Searching(Searching &&) = default;
   Searching(const Searching &) = default;
   auto operator=(Searching &&) -> Searching & = default;
   auto operator=(const Searching &) -> Searching & = default;
-  ~Searching();
+  ~Searching() = default;
 
   ChessBoard board;
 
@@ -85,7 +84,7 @@ private:
   std::uint64_t endTime = 0;
   std::uint64_t nodes;
 
-  std::array<std::array<MoveCTX, MAX_DEPTH>, 2> killers;
+  std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> killers;
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
   std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA> history;
 
