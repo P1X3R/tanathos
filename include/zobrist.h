@@ -11,3 +11,5 @@ static std::array<
 static std::uint64_t ZOBRIST_TURN;
 static std::array<std::uint64_t, 1 << 4> ZOBRIST_CASTLING_RIGHTS;
 static std::array<std::uint64_t, BOARD_LENGTH> ZOBRIST_EN_PASSANT_FILE;
+
+static constexpr std::uint8_t ZOBRIST_HISTORY_SIZE = 6;

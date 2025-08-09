@@ -3,6 +3,7 @@
 #include "bitboard.h"
 #include "board.h"
 #include "legalMoves.h"
+#include "zobrist.h"
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -71,10 +72,8 @@ public:
 private:
   TranspositionTable TT;
 
-  static constexpr std::size_t ZOBRIST_HISTORY_CAPACITY = 10;
-
   std::array<std::array<MoveCTX, MAX_DEPTH>, 2> killers;
-  std::array<std::uint64_t, ZOBRIST_HISTORY_CAPACITY> zobristHistory;
+  std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
   std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA> history;
 
   [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,

@@ -1,12 +1,11 @@
 #pragma once
 
 #include "sysifus.h"
+#include "zobrist.h"
 #include <array>
 #include <bit>
 #include <cstdint>
 #include <string>
-
-struct MoveGenerator;
 
 struct CastlingRights {
   bool whiteKingSide : 1;
@@ -58,8 +57,9 @@ public:
 
   [[nodiscard]] auto evaluate() const -> std::int32_t;
 
-  [[nodiscard]] auto isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
-                            bool isEnemyColorWhite) -> bool;
+  [[nodiscard]] auto
+  isDraw(const std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> &zobristHistory,
+         bool isEnemyColorWhite) -> bool;
 
 private:
   [[nodiscard]] auto insufficientMaterial() -> bool;
