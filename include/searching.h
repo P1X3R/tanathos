@@ -70,6 +70,9 @@ public:
   ~Searching();
 
   ChessBoard board;
+  MoveCTX bestMove;
+
+  auto search(std::uint8_t depth) -> std::int32_t;
 
 private:
   TranspositionTable TT;

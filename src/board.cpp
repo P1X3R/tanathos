@@ -1,6 +1,7 @@
 #include "board.h"
 #include "luts.h"
 #include "sysifus.h"
+#include "zobrist.h"
 #include <bit>
 #include <cstdint>
 
@@ -67,7 +68,7 @@ auto ChessBoard::isSquareUnderAttack(const std::int32_t square,
   return false; // No attacking pieces found
 }
 
-auto ChessBoard::insufficientMaterial() -> bool {
+auto ChessBoard::insufficientMaterial() const -> bool {
   // Check for insufficient material
   auto countPieces = [](const std::array<std::uint64_t, Piece::KING + 1> &color)
       -> std::uint8_t {
@@ -125,8 +126,9 @@ auto ChessBoard::insufficientMaterial() -> bool {
   return false;
 }
 
-auto ChessBoard::isDraw(const std::array<std::uint64_t, 3> &zobristHistory,
-                        const bool isEnemyColorWhite) -> bool {
+auto ChessBoard::isDraw(
+    const std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> &zobristHistory) const
+    -> bool {
   static constexpr std::uint8_t fiftyMoveCounterThreshold = 100;
   if (halfmoveClock >= fiftyMoveCounterThreshold) {
     return true;

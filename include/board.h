@@ -58,11 +58,11 @@ public:
   [[nodiscard]] auto evaluate() const -> std::int32_t;
 
   [[nodiscard]] auto
-  isDraw(const std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> &zobristHistory,
-         bool isEnemyColorWhite) -> bool;
+  isDraw(const std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> &zobristHistory)
+      const -> bool;
 
 private:
-  [[nodiscard]] auto insufficientMaterial() -> bool;
+  [[nodiscard]] auto insufficientMaterial() const -> bool;
 };
 
 enum BoardSquare : std::uint8_t {
