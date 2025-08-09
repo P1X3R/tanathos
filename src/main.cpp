@@ -2,6 +2,7 @@
 #include "legalMoves.h"
 #include "move.h"
 #include "perft.h"
+#include "searching.h"
 #include <cstddef>
 #include <iostream>
 #include <sstream>
@@ -23,6 +24,7 @@ auto tokenize(std::string &input) -> std::vector<std::string> {
 class UCI {
 private:
   ChessBoard board;
+  Searching searcher;
 
   void setPosition(std::vector<std::string> &tokens) {
     if (tokens.size() < 2) {
@@ -53,15 +55,38 @@ private:
         makeMove(board, fromAlgebraic(tokens[j], board));
       }
     }
+
+    searcher.board = board;
   }
 
   void go(const std::vector<std::string> &tokens) {
+    std::uint64_t timeLimitMs = 0;
     std::uint8_t depth = 0;
+    bool isPerft = false;
+
     for (std::size_t i = 1; i < tokens.size(); ++i) {
       if (tokens[i] == "perft" && i + 1 < tokens.size()) {
         try {
           depth = std::stoi(tokens[i + 1]);
+          isPerft = true;
           break;
+        } catch (const std::exception &e) {
+          std::cout << "info string Invalid depth\n";
+          return;
+        }
+      }
+      if (tokens[i] == "movetime" && i + 1 < tokens.size()) {
+        try {
+          timeLimitMs = std::stoull(tokens[i + 1]);
+        } catch (const std::exception &e) {
+          std::cout << "info string Invalid movetime\n";
+          return;
+        }
+      } else if (tokens[i] == "depth" && i + 1 < tokens.size()) {
+        try {
+          depth = std::stoi(tokens[i + 1]);
+          // Override movetime if depth is specified
+          timeLimitMs = 0;
         } catch (const std::exception &e) {
           std::cout << "info string Invalid depth\n";
           return;
@@ -70,11 +95,21 @@ private:
     }
 
     if (depth > 0) {
-      // Assuming ChessBoard has a perft function that returns uint64_t
-      const std::uint64_t nodes = perft(depth, board, true);
-      std::cout << "\nNodes searched: " << nodes << "\n";
+      if (isPerft) {
+        std::cout << "Nodes searched: " << perft(depth, board, true) << '\n';
+      } else {
+        MoveCTX bestMove;
+        searcher.search(depth, -INF, INF, bestMove);
+        std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
+      }
+    } else if (timeLimitMs > 0) {
+      // If a time limit is specified, use iterative deepening
+      const MoveCTX bestMove = searcher.iterativeDeepening(timeLimitMs);
+      std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
     } else {
-      std::cout << "info string Invalid or missing perft depth\n";
+      // Default behavior if no specific time or depth is given
+      // You might want to implement a default search or handle this case
+      std::cout << "info string No search parameters provided\n";
     }
   }
 

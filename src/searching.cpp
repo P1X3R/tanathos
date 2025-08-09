@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 
-static constexpr std::int32_t INF = INT32_MAX;
 static constexpr std::int32_t CHECKMATE_SCORE = 50000;
 static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
 

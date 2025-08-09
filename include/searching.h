@@ -9,6 +9,8 @@
 #include <cstdint>
 #include <vector>
 
+static constexpr std::int32_t INF = INT32_MAX;
+
 struct TTEntry {
   std::uint64_t key = 0; // Zobrist
   std::int32_t score = 0;
