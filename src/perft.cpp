@@ -22,13 +22,7 @@ auto perft(const std::uint8_t depth, ChessBoard &board, const bool printMoves)
   generator.appendCastling(board, castlingAttackMask, forWhites);
 
   for (const auto &move : generator.pseudoLegal) {
-    const UndoCTX undo = {
-        .move = move,
-        .castlingRights = board.castlingRights,
-        .halfmoveClock = board.halfmoveClock,
-        .enPassantSquare = board.enPassantSquare,
-        .zobrist = board.zobrist,
-    };
+    const UndoCTX undo(move, board);
 
     makeMove(board, move);
 

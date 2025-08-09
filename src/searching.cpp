@@ -126,13 +126,7 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
       break;
     }
 
-    const UndoCTX undo = {
-        .move = *move,
-        .castlingRights = board.castlingRights,
-        .halfmoveClock = board.halfmoveClock,
-        .enPassantSquare = board.enPassantSquare,
-        .zobrist = board.zobrist,
-    };
+    const UndoCTX undo(*move, board);
 
     makeMove(board, *move);
 

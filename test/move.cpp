@@ -66,13 +66,7 @@ TEST_F(MakeMoveTest, QuietPawnMove) {
   ChessBoard initialBoard = board;
   MoveCTX ctx = fromAlgebraic("e2e4", board);
 
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -104,15 +98,10 @@ TEST_F(MakeMoveTest, QuietPawnMove) {
 TEST_F(MakeMoveTest, CaptureMove) {
   const std::string fen = "8/8/8/3n4/4P3/8/8/8 w - - 0 1";
   ChessBoard board(fen);
-  MoveCTX ctx = fromAlgebraic("e4d5", board);
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const MoveCTX ctx = fromAlgebraic("e4d5", board);
+  const ChessBoard initialBoard = board;
+
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -151,16 +140,10 @@ TEST_F(MakeMoveTest, EnPassantCapture) {
   board.blacks[Piece::PAWN] |= (1ULL << D5);
   board.enPassantSquare = D6;
 
-  MoveCTX ctx = fromAlgebraic("e5d6", board);
+  const MoveCTX ctx = fromAlgebraic("e5d6", board);
 
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const ChessBoard initialBoard = board;
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -193,16 +176,10 @@ TEST_F(MakeMoveTest, EnPassantCapture) {
 TEST_F(MakeMoveTest, PawnPromotion) {
   const std::string fen = "8/6P1/8/8/8/8/8/8 w - - 0 1";
   ChessBoard board(fen);
-  MoveCTX ctx = fromAlgebraic("g7g8q", board);
+  const MoveCTX ctx = fromAlgebraic("g7g8q", board);
 
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const ChessBoard initialBoard = board;
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -235,16 +212,10 @@ TEST_F(MakeMoveTest, CastlingKingSide) {
   const std::string fen =
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1";
   ChessBoard board(fen);
-  MoveCTX ctx = fromAlgebraic("e1g1", board);
+  const MoveCTX ctx = fromAlgebraic("e1g1", board);
 
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const ChessBoard initialBoard = board;
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -286,16 +257,10 @@ TEST_F(MakeMoveTest, CastlingQueenSide) {
   const std::string fen =
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1";
   ChessBoard board(fen);
-  MoveCTX ctx = fromAlgebraic("e1c1", board);
+  const MoveCTX ctx = fromAlgebraic("e1c1", board);
 
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const ChessBoard initialBoard = board;
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -337,16 +302,10 @@ TEST_F(MakeMoveTest, RookMoveAffectsCastling) {
   const std::string fen =
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R1BQKBNR w KQkq - 0 1";
   ChessBoard board(fen);
-  MoveCTX ctx = fromAlgebraic("a1b1", board);
+  const MoveCTX ctx = fromAlgebraic("a1b1", board);
 
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const ChessBoard initialBoard = board;
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -385,17 +344,11 @@ TEST_F(MakeMoveTest, CaptureRookAffectsCastling) {
   const std::string fen =
       "rnbqkbnr/pppp1ppp/5n2/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
   ChessBoard board(fen);
-  MoveCTX ctx =
+  const MoveCTX ctx =
       fromAlgebraic("g1h8", board); // White knight captures black rook
 
-  ChessBoard initialBoard = board;
-  UndoCTX undo = {
-      .move = ctx,
-      .castlingRights = board.castlingRights,
-      .halfmoveClock = board.halfmoveClock,
-      .enPassantSquare = board.enPassantSquare,
-      .zobrist = board.zobrist,
-  };
+  const ChessBoard initialBoard = board;
+  const UndoCTX undo(ctx, board);
 
   makeMove(board, ctx);
 
@@ -484,13 +437,7 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
     // Test each move
     for (const auto &move : generator.pseudoLegal) {
       // Save state for undo
-      const UndoCTX undo = {
-          .move = move,
-          .castlingRights = board.castlingRights,
-          .halfmoveClock = board.halfmoveClock,
-          .enPassantSquare = board.enPassantSquare,
-          .zobrist = board.zobrist,
-      };
+      const UndoCTX undo(move, board);
 
       // Make move
       makeMove(board, move);
