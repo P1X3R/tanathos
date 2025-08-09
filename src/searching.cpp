@@ -2,6 +2,7 @@
 #include "board.h"
 #include "legalMoves.h"
 #include "move.h"
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -92,22 +93,18 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
   }
 
   const bool forWhites = board.whiteToMove;
-
-  std::int32_t bestScore = -INF;
-
   const std::int32_t alphaOriginal = alpha;
   const std::uint8_t ply = MAX_DEPTH - depth;
+  std::int32_t bestScore = -INF;
 
-  const TTEntry *entry = TT.probe(board.zobrist);
-  std::int32_t entryScore = 0;
-  EntryProbingCTX ctx = {
-      .ply = ply,
-      .depth = depth,
-      .alpha = alpha,
-      .beta = beta,
-  };
-  if (probeTTEntry(entry, ctx, entryScore)) {
-    return entryScore;
+  // --- Probe transposition table ---
+  if (const TTEntry *entry = TT.probe(board.zobrist)) {
+    std::int32_t entryScore;
+    EntryProbingCTX ctx = {
+        .ply = ply, .depth = depth, .alpha = alpha, .beta = beta};
+    if (probeTTEntry(entry, ctx, entryScore)) {
+      return entryScore;
+    }
   }
 
   MoveGenerator generator;
@@ -117,6 +114,35 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
   generator.appendCastling(board, castlingAttackMask, forWhites);
 
   bool hasLegalMoves = false;
+  searchAllMoves(generator, depth, alpha, beta, bestScore, ply, forWhites,
+                 hasLegalMoves, alphaOriginal);
+
+  // --- No legal moves handling ---
+  if (!hasLegalMoves) {
+    return board.isKingInCheck(forWhites)
+               ? -CHECKMATE_SCORE + depth // Mate in N
+               : 0;                       // Stalemate
+  }
+
+  // --- Store in TT ---
+  storeEntry(board, TT, bestMove,
+             {.ply = ply,
+              .depth = depth,
+              .bestScore = bestScore,
+              .alphaOriginal = alphaOriginal,
+              .beta = beta});
+
+  return bestScore;
+}
+
+void Searching::searchAllMoves(MoveGenerator &generator,
+                               const std::uint8_t depth, std::int32_t &alpha,
+                               const std::int32_t beta, std::int32_t &bestScore,
+                               const std::uint8_t ply, const bool forWhites,
+                               bool &hasLegalMoves,
+                               const std::int32_t alphaOriginal) {
+  const TTEntry *entry = TT.probe(board.zobrist);
+
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        ++moveIndex) {
     const MoveCTX *move =
@@ -127,7 +153,6 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
     }
 
     const UndoCTX undo(*move, board);
-
     makeMove(board, *move);
 
     if (board.isKingInCheck(forWhites)) {
@@ -142,7 +167,6 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
       score = -search(depth - 1, -beta, -alpha);
     } else {
       score = -search(depth - 1, -alpha - 1, -alpha);
-
       if (score > alpha && beta - alpha > 1) {
         score = -search(depth - 1, -beta, -alpha);
       }
@@ -155,29 +179,8 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
       bestMove = *move;
     }
     if (score >= beta) {
-      return beta;
+      return; // Cutoff
     }
-    if (score > alpha) {
-      alpha = score;
-
-      if (alpha >= beta) {
-        break;
-      }
-    }
+    alpha = std::max(score, alpha);
   }
-
-  if (!hasLegalMoves) {
-    return board.isKingInCheck(forWhites)
-               ? -CHECKMATE_SCORE + depth // Mate in N
-               : 0;                       // Stalemate
-  }
-
-  storeEntry(board, TT, bestMove,
-             {.ply = ply,
-              .depth = depth,
-              .bestScore = bestScore,
-              .alphaOriginal = alphaOriginal,
-              .beta = beta});
-
-  return bestScore;
 }

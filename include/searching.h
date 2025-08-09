@@ -93,4 +93,9 @@ private:
     zobristHistory[zobristHistoryIndex] = board.zobrist;
     zobristHistoryIndex = (zobristHistoryIndex + 1) % ZOBRIST_HISTORY_SIZE;
   }
+
+  void searchAllMoves(MoveGenerator &generator, std::uint8_t depth,
+                      std::int32_t &alpha, std::int32_t beta,
+                      std::int32_t &bestScore, std::uint8_t ply, bool forWhites,
+                      bool &hasLegalMoves, std::int32_t alphaOriginal);
 };
