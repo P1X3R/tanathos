@@ -70,15 +70,18 @@ public:
   ~Searching();
 
   ChessBoard board;
-  MoveCTX bestMove;
 
-  auto search(std::uint8_t depth, std::int32_t alpha, std::int32_t beta)
-      -> std::int32_t;
+  auto search(std::uint8_t depth, std::int32_t alpha, std::int32_t beta,
+              MoveCTX &bestMove) -> std::int32_t;
+
+  auto iterativeDeepening(std::uint64_t timeLimitMs) -> MoveCTX;
 
 private:
   TranspositionTable TT;
 
   std::uint8_t zobristHistoryIndex = 0;
+  std::uint64_t endTime = 0;
+  std::uint64_t nodes;
 
   std::array<std::array<MoveCTX, MAX_DEPTH>, 2> killers;
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
@@ -103,5 +106,6 @@ private:
   void searchAllMoves(MoveGenerator &generator, std::uint8_t depth,
                       std::int32_t &alpha, std::int32_t beta,
                       std::int32_t &bestScore, std::uint8_t ply, bool forWhites,
-                      bool &hasLegalMoves, std::int32_t alphaOriginal);
+                      bool &hasLegalMoves, std::int32_t alphaOriginal,
+                      MoveCTX &bestMove);
 };

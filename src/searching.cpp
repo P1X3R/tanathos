@@ -2,8 +2,10 @@
 #include "board.h"
 #include "legalMoves.h"
 #include "move.h"
+#include "sysifus.h"
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 
@@ -20,6 +22,12 @@ struct EntryProbingCTX {
   std::uint8_t ply, depth;
   std::int32_t &alpha, &beta;
 };
+
+static auto nowMs() -> std::uint64_t {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
 
 static auto probeTTEntry(const TTEntry *entry, EntryProbingCTX &ctx,
                          std::int32_t &outScore) -> bool {
@@ -84,12 +92,18 @@ static void storeEntry(const ChessBoard &board, TranspositionTable &table,
 }
 
 auto Searching::search(std::uint8_t depth, std::int32_t alpha,
-                       std::int32_t beta) -> std::int32_t {
+                       std::int32_t beta, MoveCTX &bestMove) -> std::int32_t {
+  nodes++;
+
   if (depth == 0) {
     return board.evaluate();
   }
   if (board.isDraw(zobristHistory)) {
     return 0;
+  }
+
+  if (nowMs() >= endTime) {
+    return alpha;
   }
 
   const bool forWhites = board.whiteToMove;
@@ -114,7 +128,7 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
 
   bool hasLegalMoves = false;
   searchAllMoves(generator, depth, alpha, beta, bestScore, ply, forWhites,
-                 hasLegalMoves, alphaOriginal);
+                 hasLegalMoves, alphaOriginal, bestMove);
 
   if (!hasLegalMoves) {
     return board.isKingInCheck(forWhites)
@@ -137,7 +151,8 @@ void Searching::searchAllMoves(MoveGenerator &generator,
                                const std::int32_t beta, std::int32_t &bestScore,
                                const std::uint8_t ply, const bool forWhites,
                                bool &hasLegalMoves,
-                               const std::int32_t alphaOriginal) {
+                               const std::int32_t alphaOriginal,
+                               MoveCTX &bestMove) {
   const TTEntry *entry = TT.probe(board.zobrist);
 
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
@@ -163,11 +178,11 @@ void Searching::searchAllMoves(MoveGenerator &generator,
 
     std::int32_t score = 0;
     if (moveIndex == 0) {
-      score = -search(depth - 1, -beta, -alpha);
+      score = -search(depth - 1, -beta, -alpha, bestMove);
     } else {
-      score = -search(depth - 1, -alpha - 1, -alpha);
+      score = -search(depth - 1, -alpha - 1, -alpha, bestMove);
       if (score > alpha && beta - alpha > 1) {
-        score = -search(depth - 1, -beta, -alpha);
+        score = -search(depth - 1, -beta, -alpha, bestMove);
       }
     }
 
@@ -193,4 +208,32 @@ void Searching::searchAllMoves(MoveGenerator &generator,
     }
     alpha = std::max(score, alpha);
   }
+}
+
+auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
+  const std::uint64_t startingTime = nowMs();
+  endTime = timeLimitMs + startingTime;
+
+  MoveCTX bestMove;
+
+  for (std::uint8_t depth = 1; depth < MAX_DEPTH; depth++) {
+    if (nowMs() >= endTime) {
+      break;
+    }
+
+    // The search function assigns the best move
+    MoveCTX PVMove;
+    search(depth, -INF, INF, PVMove);
+
+    nodes = 0;
+
+    if (nowMs() < endTime) {
+      bestMove = PVMove;
+    } else {
+      break;
+    }
+  }
+
+  endTime = 0;
+  return bestMove;
 }
