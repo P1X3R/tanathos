@@ -8,8 +8,6 @@
 
 struct MoveGenerator;
 
-enum class GameOutcome : std::uint8_t { STILL, DRAW, WHITES_WIN, BLACKS_WIN };
-
 struct CastlingRights {
   bool whiteKingSide : 1;
   bool whiteQueenSide : 1;
