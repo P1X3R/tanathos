@@ -97,7 +97,6 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
   const std::uint8_t ply = MAX_DEPTH - depth;
   std::int32_t bestScore = -INF;
 
-  // --- Probe transposition table ---
   if (const TTEntry *entry = TT.probe(board.zobrist)) {
     std::int32_t entryScore;
     EntryProbingCTX ctx = {
@@ -117,14 +116,12 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
   searchAllMoves(generator, depth, alpha, beta, bestScore, ply, forWhites,
                  hasLegalMoves, alphaOriginal);
 
-  // --- No legal moves handling ---
   if (!hasLegalMoves) {
     return board.isKingInCheck(forWhites)
                ? -CHECKMATE_SCORE + depth // Mate in N
                : 0;                       // Stalemate
   }
 
-  // --- Store in TT ---
   storeEntry(board, TT, bestMove,
              {.ply = ply,
               .depth = depth,
@@ -179,6 +176,16 @@ void Searching::searchAllMoves(MoveGenerator &generator,
       bestMove = *move;
     }
     if (score >= beta) {
+      if (move->captured == Piece::NOTHING) {
+        // Store killer moves
+        if (killers[depth][0] != *move) {
+          killers[depth][1] = killers[depth][0];
+          killers[depth][0] = *move;
+        }
+
+        history[move->from][move->to] = depth * depth;
+      }
+
       return; // Cutoff
     }
     alpha = std::max(score, alpha);
