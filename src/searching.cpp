@@ -143,12 +143,25 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
 
     hasLegalMoves = true;
 
-    std::int32_t score = -search(depth - 1, -beta, -alpha);
+    std::int32_t score = 0;
+    if (moveIndex == 0) {
+      score = -search(depth - 1, -beta, -alpha);
+    } else {
+      score = -search(depth - 1, -alpha - 1, -alpha);
+
+      if (score > alpha && beta - alpha > 1) {
+        score = -search(depth - 1, -beta, -alpha);
+      }
+    }
+
     undoMove(board, undo);
 
     if (score > bestScore) {
       bestScore = score;
       bestMove = *move;
+    }
+    if (score >= beta) {
+      return beta;
     }
     if (score > alpha) {
       alpha = score;
