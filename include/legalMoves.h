@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-static constexpr std::uint8_t MAX_DEPTH = 4;
+static constexpr std::uint8_t MAX_DEPTH = 6;
 
 struct MoveCTX {
   std::uint32_t from : 6 = 0; // The square where the moved piece comes from

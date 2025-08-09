@@ -94,6 +94,12 @@ private:
     zobristHistoryIndex = (zobristHistoryIndex + 1) % ZOBRIST_HISTORY_SIZE;
   }
 
+  void popZobristHistory() {
+    zobristHistoryIndex =
+        (zobristHistoryIndex + ZOBRIST_HISTORY_SIZE - 1) % ZOBRIST_HISTORY_SIZE;
+    zobristHistory[zobristHistoryIndex] = 0;
+  }
+
   void searchAllMoves(MoveGenerator &generator, std::uint8_t depth,
                       std::int32_t &alpha, std::int32_t beta,
                       std::int32_t &bestScore, std::uint8_t ply, bool forWhites,

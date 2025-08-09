@@ -151,6 +151,7 @@ void Searching::searchAllMoves(MoveGenerator &generator,
 
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
+    appendZobristHistory();
 
     if (board.isKingInCheck(forWhites)) {
       undoMove(board, undo);
@@ -170,6 +171,7 @@ void Searching::searchAllMoves(MoveGenerator &generator,
     }
 
     undoMove(board, undo);
+    popZobristHistory();
 
     if (score > bestScore) {
       bestScore = score;
