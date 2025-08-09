@@ -72,7 +72,8 @@ public:
   ChessBoard board;
   MoveCTX bestMove;
 
-  auto search(std::uint8_t depth) -> std::int32_t;
+  auto search(std::uint8_t depth, std::int32_t alpha, std::int32_t beta)
+      -> std::int32_t;
 
 private:
   TranspositionTable TT;

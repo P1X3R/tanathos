@@ -1,14 +1,14 @@
 #include "searching.h"
 #include "legalMoves.h"
 #include "move.h"
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
 static constexpr std::int32_t INF = INT32_MAX;
 static constexpr std::int32_t CHECKMATE_SCORE = 50000;
 
-auto Searching::search(std::uint8_t depth) -> std::int32_t {
+auto Searching::search(std::uint8_t depth, std::int32_t alpha,
+                       std::int32_t beta) -> std::int32_t {
   if (depth == 0) {
     return board.evaluate();
   }
@@ -16,9 +16,9 @@ auto Searching::search(std::uint8_t depth) -> std::int32_t {
     return 0;
   }
 
-  std::int32_t max = -INF;
-
   const bool forWhites = board.whiteToMove;
+
+  std::int32_t bestScore = -INF;
 
   MoveGenerator generator;
   generator.generatePseudoLegal(board, forWhites);
@@ -52,17 +52,27 @@ auto Searching::search(std::uint8_t depth) -> std::int32_t {
 
     hasLegalMoves = true;
 
-    std::int32_t score = -search(depth - 1);
-    max = std::max(score, max);
-
+    std::int32_t score = -search(depth - 1, -beta, -alpha);
     undoMove(board, undo);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = *move;
+    }
+    if (score > alpha) {
+      alpha = score;
+
+      if (alpha >= beta) {
+        break;
+      }
+    }
   }
 
   if (!hasLegalMoves) {
-    const std::int32_t outcomeScoreMagnitude =
-        board.isKingInCheck(forWhites) ? CHECKMATE_SCORE - depth : 0;
-    return forWhites ? outcomeScoreMagnitude : -outcomeScoreMagnitude;
+    return board.isKingInCheck(forWhites)
+               ? -CHECKMATE_SCORE + depth // Mate in N
+               : 0;                       // Stalemate
   }
 
-  return max;
+  return bestScore;
 }
