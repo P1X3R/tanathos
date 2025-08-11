@@ -10,4 +10,8 @@ target("tanathos")
     add_deps("sysifus")
     set_languages("c++20")
 
+    if is_mode("debug") then
+        set_symbols("debug")
+    end
+
 includes("test")

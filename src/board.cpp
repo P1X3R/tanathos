@@ -1,9 +1,12 @@
 #include "board.h"
+#include "bitboard.h"
 #include "luts.h"
 #include "sysifus.h"
 #include "zobrist.h"
 #include <bit>
+#include <cassert>
 #include <cstdint>
+#include <iostream>
 
 auto ChessBoard::isSquareUnderAttack(const std::int32_t square,
                                      const bool byWhites) const -> bool {
@@ -138,6 +141,10 @@ auto ChessBoard::isDraw(
     std::uint8_t count = 0;
     for (std::size_t i = zobristHistory.size() - 1;
          i < zobristHistory.size() && i >= 0; --i) {
+      if (zobrist == ~0ULL) {
+        continue;
+      }
+
       if (zobristHistory[i] == zobrist) {
         count++;
         if (count == 3) {
@@ -151,4 +158,36 @@ auto ChessBoard::isDraw(
   }
 
   return false;
+}
+
+static void updateForColor(const bool forWhites, const ChessBoard *board,
+                           std::uint64_t &result) {
+  const auto &pieces = forWhites ? board->whites : board->blacks;
+  for (std::uint32_t piece = Piece::PAWN; piece <= Piece::KING; piece++) {
+    std::uint64_t bits = pieces[piece];
+    while (bits != 0) {
+      std::uint32_t square = std::countr_zero(bits);
+      result ^=
+          ZOBRIST_PIECE[static_cast<std::size_t>(forWhites)][piece][square];
+      bits &= bits - 1;
+    }
+  }
+}
+
+auto ChessBoard::calculateZobrist() const -> std::uint64_t {
+  std::uint64_t result = 0;
+
+  updateForColor(true, this, result);
+  updateForColor(false, this, result);
+
+  result ^= ZOBRIST_CASTLING_RIGHTS[getCompressedCastlingRights()];
+
+  if (enPassantSquare != 0) {
+    result ^= ZOBRIST_EN_PASSANT_FILE[enPassantSquare % BOARD_LENGTH];
+  }
+  if (!whiteToMove) {
+    result ^= ZOBRIST_TURN;
+  }
+
+  return result;
 }

@@ -2,6 +2,7 @@
 #include "board.h"
 #include "legalMoves.h"
 #include "sysifus.h"
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -10,7 +11,6 @@
 ChessBoard::ChessBoard(const std::string &fen) {
   whites = {};
   blacks = {};
-  zobrist = 0;
   halfmoveClock = 0;
   enPassantSquare = 0;
   whiteToMove = true;
@@ -126,6 +126,8 @@ ChessBoard::ChessBoard(const std::string &fen) {
   pos = next + 1;
   next = fen.find(' ', pos);
   halfmoveClock = std::stoi(fen.substr(pos, next - pos));
+
+  zobrist = calculateZobrist();
 }
 
 static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
@@ -242,4 +244,3 @@ auto moveToUCI(const MoveCTX &move) -> std::string {
 
   return result;
 }
-

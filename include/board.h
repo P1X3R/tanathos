@@ -61,6 +61,8 @@ public:
   isDraw(const std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> &zobristHistory)
       const -> bool;
 
+  [[nodiscard]] auto calculateZobrist() const -> std::uint64_t;
+
 private:
   [[nodiscard]] auto insufficientMaterial() const -> bool;
 };

@@ -1,4 +1,5 @@
 #include "board.h"
+#include "debuggingTools.h"
 #include "legalMoves.h"
 #include "move.h"
 #include "perft.h"
@@ -96,7 +97,9 @@ private:
 
     if (depth > 0) {
       if (isPerft) {
-        std::cout << "Nodes searched: " << perft(depth, board, true) << '\n';
+        const std::uint64_t nodes = perft(depth, board, true);
+
+        std::cout << "Nodes searched: " << nodes << '\n';
       } else {
         MoveCTX bestMove;
         searcher.search(depth, -INF, INF, bestMove);

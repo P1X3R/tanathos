@@ -2,7 +2,6 @@
 #include "bitboard.h"
 #include "board.h"
 #include "legalMoves.h"
-#include "zobrist.h"
 #include "gtest/gtest.h"
 #include <cstddef>
 #include <cstdint>
@@ -28,34 +27,6 @@ protected:
       }
     }
     return std::make_pair(Piece::NOTHING, false);
-  }
-
-  static auto calculateZobrist(const ChessBoard &board) -> std::uint64_t {
-    std::uint64_t result = 0;
-
-    for (bool color = false; !color; color = true) {
-      const auto &pieces = color ? board.whites : board.blacks;
-      for (int piece = Piece::PAWN; piece <= Piece::KING; piece++) {
-        uint64_t bits = pieces[piece];
-        while (bits != 0) {
-          int square = __builtin_ctzll(bits);
-          result ^=
-              ZOBRIST_PIECE[static_cast<std::size_t>(color)][piece][square];
-          bits &= bits - 1;
-        }
-      }
-    }
-
-    result ^= ZOBRIST_CASTLING_RIGHTS[board.getCompressedCastlingRights()];
-
-    if (board.enPassantSquare != 0) {
-      result ^= ZOBRIST_EN_PASSANT_FILE[board.enPassantSquare % BOARD_LENGTH];
-    }
-    if (!board.whiteToMove) {
-      result ^= ZOBRIST_TURN;
-    }
-
-    return result;
   }
 };
 
@@ -423,7 +394,7 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
     }
 
     // Calculate initial hash from scratch
-    const uint64_t initialHash = calculateZobrist(board);
+    const std::uint64_t initialHash = board.calculateZobrist();
 
     board.zobrist = initialHash;
 
@@ -452,7 +423,7 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
       EXPECT_NE(board.zobrist, initialHash) << "Hash didn't change after move";
 
       // Property 2: Hash should match full calculation
-      const uint64_t newCalculatedHash = calculateZobrist(board);
+      const std::uint64_t newCalculatedHash = board.calculateZobrist();
 
       EXPECT_EQ(board.zobrist, newCalculatedHash) << "Hash mismatch after move";
 

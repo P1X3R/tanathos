@@ -29,8 +29,10 @@ static auto nowMs() -> std::uint64_t {
 }
 
 static auto probeTTEntry(const TTEntry *entry, EntryProbingCTX &ctx,
-                         std::int32_t &outScore) -> bool {
-  if (entry == nullptr || entry->depth < ctx.depth) {
+                         std::int32_t &outScore, const ChessBoard &board)
+    -> bool {
+  if (entry == nullptr || entry->key != board.zobrist ||
+      entry->depth < ctx.depth) {
     return false;
   }
 
@@ -92,15 +94,12 @@ static void storeEntry(const ChessBoard &board, TranspositionTable &table,
 
 auto Searching::search(std::uint8_t depth, std::int32_t alpha,
                        std::int32_t beta, MoveCTX &bestMove) -> std::int32_t {
-  nodes++;
-
   if (depth == 0) {
     return board.evaluate();
   }
   if (board.isDraw(zobristHistory)) {
     return 0;
   }
-
   if (nowMs() >= endTime) {
     return alpha;
   }
@@ -114,7 +113,7 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
     std::int32_t entryScore;
     EntryProbingCTX ctx = {
         .ply = ply, .depth = depth, .alpha = alpha, .beta = beta};
-    if (probeTTEntry(entry, ctx, entryScore)) {
+    if (probeTTEntry(entry, ctx, entryScore, board)) {
       return entryScore;
     }
   }
@@ -126,6 +125,7 @@ auto Searching::search(std::uint8_t depth, std::int32_t alpha,
   generator.appendCastling(board, castlingAttackMask, forWhites);
 
   bool hasLegalMoves = false;
+
   searchAllMoves(generator, depth, alpha, beta, bestScore, ply, forWhites,
                  hasLegalMoves, alphaOriginal, bestMove);
 
@@ -224,8 +224,6 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
     MoveCTX PVMove;
     search(depth, -INF, INF, PVMove);
 
-    nodes = 0;
-
     if (nowMs() < endTime) {
       bestMove = PVMove;
     } else {
@@ -233,6 +231,6 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
     }
   }
 
-  endTime = 0;
+  endTime = UINT64_MAX;
   return bestMove;
 }

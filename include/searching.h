@@ -12,7 +12,7 @@
 static constexpr std::int32_t INF = INT32_MAX;
 
 struct TTEntry {
-  std::uint64_t key = 0; // Zobrist
+  std::uint64_t key = UINT64_MAX; // Zobrist
   std::int32_t score = 0;
   std::uint8_t depth = 0;
   enum BoundFlag : std::uint8_t {
@@ -25,10 +25,10 @@ struct TTEntry {
 
 class TranspositionTable {
 public:
-  TranspositionTable() { Table.resize(TT_SIZE); }
+  TranspositionTable() { table.resize(TT_SIZE); }
 
   [[nodiscard]] auto probe(const std::uint64_t key) const -> const TTEntry * {
-    const TTEntry *entry = &Table[key & INDEX_MASK];
+    const TTEntry *entry = &table[key & INDEX_MASK];
 
     if (entry->key == key) {
       return entry;
@@ -38,8 +38,9 @@ public:
   }
 
   void store(const TTEntry &newEntry) {
-    TTEntry *entry = &Table[newEntry.key & INDEX_MASK];
-    if (entry->key != newEntry.key || newEntry.depth >= entry->depth) {
+    TTEntry *entry = &table[newEntry.key & INDEX_MASK];
+    if ((entry->key == UINT64_MAX || newEntry.depth >= entry->depth) &&
+        (entry->bestMove.from != entry->bestMove.to)) {
       *entry = newEntry;
     }
   }
@@ -53,9 +54,10 @@ private:
   // Round down to power of 2
   static constexpr std::size_t TT_SIZE =
       std::bit_floor(TT_SIZE_BYTES / sizeof(TTEntry));
-  static constexpr std::uint64_t INDEX_MASK = TT_SIZE - 1;
 
-  std::vector<TTEntry> Table;
+  static const std::uint64_t INDEX_MASK = TT_SIZE - 1;
+
+  std::vector<TTEntry> table;
 };
 
 constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
@@ -63,7 +65,7 @@ constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
 
 class Searching {
 public:
-  Searching() = default;
+  Searching() { zobristHistory.fill(~0ULL); }; // ~0ULL means no key
   Searching(Searching &&) = default;
   Searching(const Searching &) = default;
   auto operator=(Searching &&) -> Searching & = default;
@@ -81,8 +83,7 @@ private:
   TranspositionTable TT;
 
   std::uint8_t zobristHistoryIndex = 0;
-  std::uint64_t endTime = 0;
-  std::uint64_t nodes;
+  std::uint64_t endTime = UINT64_MAX;
 
   std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> killers;
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
@@ -101,7 +102,7 @@ private:
   void popZobristHistory() {
     zobristHistoryIndex =
         (zobristHistoryIndex + ZOBRIST_HISTORY_SIZE - 1) % ZOBRIST_HISTORY_SIZE;
-    zobristHistory[zobristHistoryIndex] = 0;
+    zobristHistory[zobristHistoryIndex] = ~0ULL;
   }
 
   void searchAllMoves(MoveGenerator &generator, std::uint8_t depth,
