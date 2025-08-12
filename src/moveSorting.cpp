@@ -5,7 +5,7 @@
 #include <cstdint>
 
 enum MoveOrderBonus : std::uint16_t {
-  TRANSPOSITION_TABLE = 20000,
+  TRANSPOSITION_TABLE = 50000,
   CAPTURES = 10000,
   KILLER_MOVE = 5000,
   HISTORY = 3000,

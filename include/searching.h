@@ -7,6 +7,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 static constexpr std::int32_t INF = INT32_MAX;
@@ -39,14 +40,13 @@ public:
 
   void store(const TTEntry &newEntry) {
     TTEntry *entry = &table[newEntry.key & INDEX_MASK];
-    if ((entry->key == UINT64_MAX || newEntry.depth >= entry->depth) &&
-        (entry->bestMove.from != entry->bestMove.to)) {
+    if (entry->key == UINT64_MAX || newEntry.depth >= entry->depth) {
       *entry = newEntry;
     }
   }
 
 private:
-  static constexpr std::size_t TT_SIZE_MB = 10;
+  static constexpr std::size_t TT_SIZE_MB = 128;
   static constexpr std::size_t MB_TO_BYTE_SCALE_FACTOR = 1048576;
 
   static constexpr std::size_t TT_SIZE_BYTES =
@@ -65,7 +65,15 @@ constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
 
 class Searching {
 public:
-  Searching() { zobristHistory.fill(~0ULL); }; // ~0ULL means no key
+  Searching() {
+    zobristHistory.fill(~0ULL);
+    for (auto &row : history) {
+      row.fill(0); // Initialize history to 0
+    }
+    for (auto &killer : killers) {
+      killer.fill(MoveCTX{}); // Initialize killers to empty moves
+    }
+  }; // ~0ULL means no key
   Searching(Searching &&) = default;
   Searching(const Searching &) = default;
   auto operator=(Searching &&) -> Searching & = default;
@@ -73,11 +81,22 @@ public:
   ~Searching() = default;
 
   ChessBoard board;
+  std::uint64_t nodes = 0;
+  std::uint64_t cuts = 0;
 
-  auto search(std::uint8_t depth, std::int32_t alpha, std::int32_t beta,
-              MoveCTX &bestMove) -> std::int32_t;
+  [[nodiscard]] auto search(std::uint8_t depth) -> MoveCTX;
 
   auto iterativeDeepening(std::uint64_t timeLimitMs) -> MoveCTX;
+
+  void afterSearch() {
+    for (std::uint32_t fromSquare = 0; fromSquare < BOARD_AREA; fromSquare++) {
+      for (std::uint32_t toSquare = 0; toSquare < BOARD_AREA; toSquare++) {
+        history[fromSquare][toSquare] >>= 1;
+      }
+    }
+
+    std::memset(killers.data(), 0, sizeof(killers));
+  }
 
 private:
   TranspositionTable TT;
@@ -93,6 +112,9 @@ private:
                               std::uint8_t moveIndex, const ChessBoard &board,
                               std::uint8_t depth, const MoveCTX *entryBestMove)
       -> const MoveCTX *;
+
+  [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
+                             std::uint8_t depth) -> std::int32_t;
 
   void appendZobristHistory() {
     zobristHistory[zobristHistoryIndex] = board.zobrist;

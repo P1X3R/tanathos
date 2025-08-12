@@ -1,5 +1,4 @@
 #include "board.h"
-#include "debuggingTools.h"
 #include "legalMoves.h"
 #include "move.h"
 #include "perft.h"
@@ -101,9 +100,16 @@ private:
 
         std::cout << "Nodes searched: " << nodes << '\n';
       } else {
-        MoveCTX bestMove;
-        searcher.search(depth, -INF, INF, bestMove);
+        MoveCTX bestMove = searcher.search(depth);
         std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
+
+#ifndef NDEBUG
+        std::cout << "nodes " << searcher.nodes << "\n";
+        std::cout << "cut-offs " << searcher.cuts << "\n";
+        searcher.nodes = 0;
+        searcher.cuts = 0;
+#endif
+        searcher.afterSearch();
       }
     } else if (timeLimitMs > 0) {
       // If a time limit is specified, use iterative deepening

@@ -10,5 +10,5 @@ auto ChessBoard::evaluate() const -> std::int32_t {
     score -= std::popcount(blacks[type]) * PIECE_VALUES[type];
   }
 
-  return whiteToMove ? score : -score;
+  return score;
 }
