@@ -24,7 +24,7 @@ auto tokenize(std::string &input) -> std::vector<std::string> {
 class UCI {
 private:
   ChessBoard board;
-  Searching searcher;
+  Searching searcher = Searching(board);
 
   void setPosition(std::vector<std::string> &tokens) {
     if (tokens.size() < 2) {
@@ -53,10 +53,9 @@ private:
     if (index < tokens.size() && tokens[index] == "moves") {
       for (std::size_t j = index + 1; j < tokens.size(); j++) {
         makeMove(board, fromAlgebraic(tokens[j], board));
+        searcher.appendZobristHistory();
       }
     }
-
-    searcher.board = board;
   }
 
   void go(const std::vector<std::string> &tokens) {
@@ -106,6 +105,7 @@ private:
 #ifndef NDEBUG
         std::cout << "nodes " << searcher.nodes << "\n";
         std::cout << "cut-offs " << searcher.cuts << "\n";
+        std::cout << "TT hits " << searcher.TTHits << "\n";
         searcher.nodes = 0;
         searcher.cuts = 0;
 #endif
@@ -115,6 +115,14 @@ private:
       // If a time limit is specified, use iterative deepening
       const MoveCTX bestMove = searcher.iterativeDeepening(timeLimitMs);
       std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
+
+#ifndef NDEBUG
+      std::cout << "nodes " << searcher.nodes << "\n";
+      std::cout << "cut-offs " << searcher.cuts << "\n";
+      std::cout << "TT hits " << searcher.TTHits << "\n";
+      searcher.nodes = 0;
+      searcher.cuts = 0;
+#endif
     } else {
       // Default behavior if no specific time or depth is given
       // You might want to implement a default search or handle this case

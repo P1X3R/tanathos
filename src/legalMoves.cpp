@@ -55,6 +55,7 @@ void appendContext(MoveCTX &ctx, const bool forWhites,
 }
 
 void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
+                                        const bool onlyKills,
                                         const bool forWhites) {
   const std::array<std::uint64_t, Piece::KING + 1> &color =
       forWhites ? board.whites : board.blacks;
@@ -73,13 +74,19 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
       const std::uint64_t enemyFlatWithEnPassant =
           type == Piece::PAWN ? enemyFlat | (1ULL << board.enPassantSquare)
                               : enemyFlat;
-      const Move pseudoLegalMoves =
-          getPseudoLegal(static_cast<Piece>(type), fromSquare, friendlyFlat,
-                         forWhites, enemyFlatWithEnPassant);
+      Move pseudoLegalMoves = (Move){0, 0};
+      if (onlyKills) {
+        pseudoLegalMoves.kills =
+            getKills(static_cast<Piece>(type), fromSquare, friendlyFlat,
+                     forWhites, enemyFlatWithEnPassant);
+      } else {
+        pseudoLegalMoves =
+            getPseudoLegal(static_cast<Piece>(type), fromSquare, friendlyFlat,
+                           forWhites, enemyFlatWithEnPassant);
+      }
+
       std::uint64_t pseudoLegalBits =
           pseudoLegalMoves.quiet | pseudoLegalMoves.kills;
-
-      kills |= pseudoLegalMoves.kills;
 
       while (pseudoLegalBits != 0) {
         // Captured info and promotion are updated on pushContext

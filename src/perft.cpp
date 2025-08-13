@@ -16,7 +16,7 @@ auto perft(const std::uint8_t depth, ChessBoard &board, const bool printMoves)
   const bool forWhites = board.whiteToMove;
 
   MoveGenerator generator;
-  generator.generatePseudoLegal(board, forWhites);
+  generator.generatePseudoLegal(board, false, forWhites);
   const CastlingRights castlingAttackMask = generateCastlingAttackMask(
       board.getFlat(true) | board.getFlat(false), board);
   generator.appendCastling(board, castlingAttackMask, forWhites);

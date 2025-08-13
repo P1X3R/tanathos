@@ -131,7 +131,7 @@ auto Searching::search(std::uint8_t depth) -> MoveCTX {
   const bool forWhites = board.whiteToMove;
 
   MoveGenerator generator;
-  generator.generatePseudoLegal(board, forWhites);
+  generator.generatePseudoLegal(board, false, forWhites);
   const CastlingRights castlingAttackMask = generateCastlingAttackMask(
       board.getFlat(true) | board.getFlat(false), board);
   generator.appendCastling(board, castlingAttackMask, forWhites);
@@ -195,7 +195,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   MoveCTX bestMove;
 
   MoveGenerator generator;
-  generator.generatePseudoLegal(board, forWhites);
+  generator.generatePseudoLegal(board, false, forWhites);
   const CastlingRights castlingAttackMask = generateCastlingAttackMask(
       board.getFlat(true) | board.getFlat(false), board);
   generator.appendCastling(board, castlingAttackMask, forWhites);
