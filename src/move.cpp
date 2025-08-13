@@ -181,6 +181,7 @@ restoreRookPositionIfCastling(std::array<std::uint64_t, Piece::KING + 1> &color,
   color[Piece::ROOK] ^= (1ULL << fromRook) | (1ULL << toRook);
 }
 
+#ifndef NDEBUG
 static void undoMoveDebugAsserts(ChessBoard &board, const UndoCTX &ctx) {
   assert(ctx.move.from < BOARD_AREA && "Invalid source square");
   assert(ctx.move.to < BOARD_AREA && "Invalid destination square");
@@ -200,6 +201,7 @@ static void undoMoveDebugAsserts(ChessBoard &board, const UndoCTX &ctx) {
   assert(ctx.halfmoveClock <= 127 && "Invalid halfmove clock");
   assert(ctx.enPassantSquare < BOARD_AREA && "Invalid en passant square");
 }
+#endif
 
 void undoMove(ChessBoard &board, const UndoCTX &ctx) {
   restoreByUndoCTX(board, ctx);
