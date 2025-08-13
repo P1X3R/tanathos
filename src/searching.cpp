@@ -105,7 +105,7 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
     }
 
 #ifndef NDEBUG
-    std::cout << "Max depth: " << static_cast<std::int32_t>(depth) << '\n';
+    // std::cout << "Max depth: " << static_cast<std::int32_t>(depth) << '\n';
 #endif // !NDEBUG
 
     // The search function assigns the best move
@@ -124,7 +124,7 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
   return bestMove;
 }
 
-auto Searching::search(std::uint8_t depth) -> MoveCTX {
+auto Searching::search(const std::uint8_t depth) -> MoveCTX {
   MoveCTX bestMove;
   std::int32_t bestScore = -INF;
 
@@ -172,7 +172,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     return 0;
   }
   if (depth == 0 || nowMs() >= endTime) {
-    return board.evaluate();
+    return quiescene(alpha, beta, ply + 1);
   }
 
   const std::uint8_t alphaOriginal = alpha;
@@ -223,6 +223,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
       std::int32_t score;
 
+      const bool isTTMove = entryBestMove != nullptr && *move == *entryBestMove;
       const bool isKillerMove =
           killers[ply][0] == *move || killers[ply][1] == *move;
       const bool isCheckMove =
@@ -237,7 +238,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
       if (moveIndex == 0 || move->captured != Piece::NOTHING ||
           move->promotion != Piece::NOTHING || isKillerMove || isCheckMove ||
-          isGoodMove || depth < 2) {
+          isGoodMove || isTTMove || depth < 2) {
         score = -negamax(-beta, -alpha, depth - 1, ply + 1);
       } else {
         score = -negamax(-alpha - 1, -alpha,
@@ -297,4 +298,76 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
               .beta = beta});
 
   return bestScore;
+}
+
+[[nodiscard]] auto Searching::quiescene(std::int32_t alpha, std::int32_t beta,
+                                        const std::uint8_t ply)
+    -> std::int32_t {
+  nodes++;
+  const bool forWhites = board.whiteToMove;
+  const std::int32_t alphaOriginal = alpha;
+
+  const TTEntry *entry = TT.probe(board.zobrist);
+  if (entry != nullptr) {
+    std::int32_t entryScore;
+    EntryProbingCTX ctx = {
+        .ply = ply, .depth = 0, .alpha = alpha, .beta = beta};
+    if (probeTTEntry(entry, ctx, entryScore, board)) {
+#ifndef NDEBUG
+      TTHits++;
+#endif // !NDEBUG
+      return entryScore;
+    }
+  }
+
+  const std::int32_t staticEvaluation = board.evaluate();
+  std::int32_t bestValue = staticEvaluation;
+  if (bestValue >= beta) {
+    cuts++;
+    return bestValue;
+  }
+  alpha = std::max(bestValue, alpha);
+
+  MoveGenerator generator;
+  generator.generatePseudoLegal(board, true, forWhites);
+
+  for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
+       ++moveIndex) {
+    const MoveCTX *move =
+        pickMove(generator.pseudoLegal, moveIndex, board, ply, nullptr);
+    const UndoCTX undo(*move, board);
+    makeMove(board, *move);
+    appendZobristHistory();
+
+    std::int32_t score = -INF;
+    if (!board.isKingInCheck(forWhites)) {
+      score = -quiescene(-beta, -alpha, ply + 1);
+    }
+
+    undoMove(board, undo);
+    popZobristHistory();
+
+    if (score >= beta) {
+      cuts++;
+      storeEntry(board, TT, *move,
+                 {.ply = ply,
+                  .depth = 0,
+                  .bestScore = score,
+                  .alphaOriginal = alphaOriginal,
+                  .beta = beta});
+      return score;
+    }
+
+    bestValue = std::max(score, bestValue);
+    alpha = std::max(score, alpha);
+  }
+
+  storeEntry(board, TT, MoveCTX(),
+             {.ply = ply,
+              .depth = 0,
+              .bestScore = bestValue,
+              .alphaOriginal = alphaOriginal,
+              .beta = beta});
+
+  return bestValue;
 }
