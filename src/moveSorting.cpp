@@ -2,6 +2,7 @@
 #include "legalMoves.h"
 #include "searching.h"
 #include "sysifus.h"
+#include <cstddef>
 #include <cstdint>
 
 enum MoveOrderBonus : std::uint16_t {
@@ -33,9 +34,10 @@ static constexpr std::array<std::array<std::uint16_t, Piece::KING + 1>,
 auto MoveCTX::score(
     const MoveCTX *entryBestMove,
     const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> &killers,
-    const std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>
+    const std::array<
+        std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
         &history,
-    const std::uint8_t depth, const ChessBoard &board) const -> std::uint16_t {
+    const std::uint8_t ply, const ChessBoard &board) const -> std::uint16_t {
   std::uint16_t score = 0;
 
   if (entryBestMove != nullptr && *entryBestMove == *this) {
@@ -44,9 +46,10 @@ auto MoveCTX::score(
   if (captured != Piece::NOTHING) {
     score += CAPTURES + MVV_LVA[original][captured];
   } else {
-    score += HISTORY + history[from][to];
+    score += HISTORY +
+             history[static_cast<std::size_t>(!board.whiteToMove)][from][to];
 
-    if (killers[depth][0] == *this || killers[depth][1] == *this) {
+    if (killers[ply][0] == *this || killers[ply][1] == *this) {
       score += KILLER_MOVE;
     }
   }
@@ -57,7 +60,7 @@ auto MoveCTX::score(
 
 [[nodiscard]] auto
 Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
-                    const ChessBoard &board, std::uint8_t depth,
+                    const ChessBoard &board, std::uint8_t ply,
                     const MoveCTX *entryBestMove) -> const MoveCTX * {
   if (moves.empty()) {
     return nullptr;
@@ -69,7 +72,7 @@ Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
   for (std::size_t i = moveIndex; i < moves.size(); i++) {
     const MoveCTX &move = moves[i];
     const std::uint16_t moveScore =
-        move.score(entryBestMove, killers, history, depth, board);
+        move.score(entryBestMove, killers, history, ply, board);
 
     if (moveScore > bestMoveScore) {
       bestMoveScore = moveScore;

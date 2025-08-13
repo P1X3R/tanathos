@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 
 static constexpr std::int32_t CHECKMATE_SCORE = 50000;
 static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
@@ -83,9 +85,9 @@ static void storeEntry(const ChessBoard &board, TranspositionTable &table,
   }
 
   if (newEntry.score > CHECKMATE_THRESHOLD) {
-    newEntry.score += ctx.ply;
-  } else if (newEntry.score < -CHECKMATE_THRESHOLD) {
     newEntry.score -= ctx.ply;
+  } else if (newEntry.score < -CHECKMATE_THRESHOLD) {
+    newEntry.score += ctx.ply;
   }
 
   table.store(newEntry);
@@ -102,6 +104,10 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
       break;
     }
 
+#ifndef NDEBUG
+    std::cout << "Max depth: " << static_cast<std::int32_t>(depth) << '\n';
+#endif // !NDEBUG
+
     // The search function assigns the best move
     MoveCTX PVMove = search(depth);
 
@@ -111,6 +117,8 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
       break;
     }
   }
+
+  afterSearch();
 
   endTime = UINT64_MAX;
   return bestMove;
@@ -137,7 +145,7 @@ auto Searching::search(std::uint8_t depth) -> MoveCTX {
     appendZobristHistory();
 
     if (!board.isKingInCheck(forWhites)) {
-      std::int32_t score = -negamax(-INF, INF, depth - 1);
+      std::int32_t score = -negamax(-INF, INF, depth - 1, 1);
       if (score > bestScore) {
         bestScore = score;
         bestMove = *move;
@@ -152,8 +160,10 @@ auto Searching::search(std::uint8_t depth) -> MoveCTX {
 }
 
 auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
-                        const std::uint8_t depth) -> std::int32_t {
+                        const std::uint8_t depth, const std::uint8_t ply)
+    -> std::int32_t {
   const bool forWhites = board.whiteToMove;
+  const auto forWhitesInteger = static_cast<const std::uint8_t>(forWhites);
 #ifndef NDEBUG
   nodes++;
 #endif // !NDEBUG
@@ -161,11 +171,10 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   if (board.isDraw(zobristHistory)) {
     return 0;
   }
-  if (depth == 0) {
+  if (depth == 0 || nowMs() >= endTime) {
     return board.evaluate();
   }
 
-  const std::uint8_t ply = MAX_DEPTH - depth;
   const std::uint8_t alphaOriginal = alpha;
 
   const TTEntry *entry = TT.probe(board.zobrist);
@@ -174,11 +183,15 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     EntryProbingCTX ctx = {
         .ply = ply, .depth = depth, .alpha = alpha, .beta = beta};
     if (probeTTEntry(entry, ctx, entryScore, board)) {
+#ifndef NDEBUG
+      TTHits++;
+#endif // !NDEBUG
       return entryScore;
     }
   }
 
   std::int32_t bestScore = -INF;
+  const MoveCTX *entryBestMove = entry != nullptr ? &entry->bestMove : nullptr;
   MoveCTX bestMove;
 
   MoveGenerator generator;
@@ -187,27 +200,51 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
       board.getFlat(true) | board.getFlat(false), board);
   generator.appendCastling(board, castlingAttackMask, forWhites);
 
+  const std::uint64_t enemyKingBitboard =
+      (forWhites ? board.blacks : board.whites)[Piece::KING];
+
   bool hasLegalMoves = false;
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        ++moveIndex) {
     const MoveCTX *move =
-        pickMove(generator.pseudoLegal, moveIndex, board, depth,
-                 entry != nullptr ? &entry->bestMove : nullptr);
+        pickMove(generator.pseudoLegal, moveIndex, board, ply, entryBestMove);
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();
+
+    if (nowMs() >= endTime) {
+      undoMove(board, undo);
+      popZobristHistory();
+      return std::max(board.evaluate(), bestScore);
+    }
 
     if (!board.isKingInCheck(forWhites)) {
       hasLegalMoves = true;
 
       std::int32_t score;
+
+      const bool isKillerMove =
+          killers[ply][0] == *move || killers[ply][1] == *move;
+      const bool isCheckMove =
+          (1ULL << move->capturedSquare) == enemyKingBitboard;
+      static constexpr std::uint16_t HISTORY_GOOD = 1000;
+      const bool isGoodMove =
+          history[forWhitesInteger][move->from][move->to] > HISTORY_GOOD;
+      // const std::uint32_t reduction =
+      //     1 + static_cast<std::uint32_t>(std::floor(0.75 * std::log(depth)))
+      //     + (moveIndex / 6);
+      const std::uint32_t reduction = (depth >= 3 && moveIndex >= 4) ? 1 : 0;
+
       if (moveIndex == 0 || move->captured != Piece::NOTHING ||
-          move->promotion != Piece::NOTHING || depth < 3) {
-        score = -negamax(-beta, -alpha, depth - 1);
+          move->promotion != Piece::NOTHING || isKillerMove || isCheckMove ||
+          isGoodMove || depth < 2) {
+        score = -negamax(-beta, -alpha, depth - 1, ply + 1);
       } else {
-        score = -negamax(-alpha - 1, -alpha, depth - 1);
+        score = -negamax(-alpha - 1, -alpha,
+                         reduction >= depth ? depth - 1 : depth - reduction,
+                         ply + 1);
         if (score > alpha && score < beta) {
-          score = -negamax(-beta, -alpha, depth - 1);
+          score = -negamax(-beta, -alpha, depth - 1, ply + 1);
         }
       }
 
@@ -224,14 +261,15 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
         if (move->captured == Piece::NOTHING) {
           // Store killer moves
-          if (killers[depth][0] != *move) {
-            killers[depth][1] = killers[depth][0];
-            killers[depth][0] = *move;
+          if (killers[ply][0] != *move) {
+            killers[ply][1] = killers[ply][0];
+            killers[ply][0] = *move;
           }
 
-          history[move->from][move->to] += depth * depth;
-          if (history[move->from][move->to] > UINT16_MAX - (depth * depth)) {
-            history[move->from][move->to] = UINT16_MAX;
+          history[forWhitesInteger][move->from][move->to] += depth * depth;
+          if (history[forWhitesInteger][move->from][move->to] >
+              UINT16_MAX - (depth * depth)) {
+            history[forWhitesInteger][move->from][move->to] = UINT16_MAX;
           }
         }
 
@@ -247,8 +285,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
   if (!hasLegalMoves) {
     return board.isKingInCheck(forWhites)
-               ? -(CHECKMATE_SCORE - depth) // Mate in N
-               : 0;                         // Stalemate
+               ? -(CHECKMATE_SCORE - ply) // Mate in N
+               : 0;                       // Stalemate
   }
 
   storeEntry(board, TT, bestMove,

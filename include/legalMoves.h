@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-static constexpr std::uint8_t MAX_DEPTH = 6;
+static constexpr std::uint8_t MAX_DEPTH = 12;
 
 struct MoveCTX {
   std::uint32_t from : 6 = 0; // The square where the moved piece comes from
@@ -27,9 +27,10 @@ struct MoveCTX {
   [[nodiscard]] auto
   score(const MoveCTX *entryBestMove,
         const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> &killers,
-        const std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>
+        const std::array<
+            std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
             &history,
-        std::uint8_t depth, const ChessBoard &board) const -> std::uint16_t;
+        std::uint8_t ply, const ChessBoard &board) const -> std::uint16_t;
 };
 
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)

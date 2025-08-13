@@ -65,10 +65,12 @@ constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
 
 class Searching {
 public:
-  Searching() {
+  explicit Searching(ChessBoard &_board) : board(_board) {
     zobristHistory.fill(~0ULL);
-    for (auto &row : history) {
-      row.fill(0); // Initialize history to 0
+    for (auto &color : history) {
+      for (auto &row : color) {
+        row.fill(0); // Initialize history to 0
+      }
     }
     for (auto &killer : killers) {
       killer.fill(MoveCTX{}); // Initialize killers to empty moves
@@ -76,13 +78,14 @@ public:
   }; // ~0ULL means no key
   Searching(Searching &&) = default;
   Searching(const Searching &) = default;
-  auto operator=(Searching &&) -> Searching & = default;
-  auto operator=(const Searching &) -> Searching & = default;
+  auto operator=(Searching &&) -> Searching & = delete;
+  auto operator=(const Searching &) -> Searching & = delete;
   ~Searching() = default;
 
-  ChessBoard board;
+  ChessBoard &board;
   std::uint64_t nodes = 0;
   std::uint64_t cuts = 0;
+  std::uint64_t TTHits = 0;
 
   [[nodiscard]] auto search(std::uint8_t depth) -> MoveCTX;
 
@@ -91,11 +94,24 @@ public:
   void afterSearch() {
     for (std::uint32_t fromSquare = 0; fromSquare < BOARD_AREA; fromSquare++) {
       for (std::uint32_t toSquare = 0; toSquare < BOARD_AREA; toSquare++) {
-        history[fromSquare][toSquare] >>= 1;
+        history[0][fromSquare][toSquare] >>= 1;
       }
     }
 
-    std::memset(killers.data(), 0, sizeof(killers));
+    for (std::uint32_t fromSquare = 0; fromSquare < BOARD_AREA; fromSquare++) {
+      for (std::uint32_t toSquare = 0; toSquare < BOARD_AREA; toSquare++) {
+        history[1][fromSquare][toSquare] >>= 1;
+      }
+    }
+
+    for (auto &depth : killers) {
+      depth.fill(MoveCTX());
+    }
+  }
+
+  void appendZobristHistory() {
+    zobristHistory[zobristHistoryIndex] = board.zobrist;
+    zobristHistoryIndex = (zobristHistoryIndex + 1) % ZOBRIST_HISTORY_SIZE;
   }
 
 private:
@@ -106,20 +122,17 @@ private:
 
   std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> killers;
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
-  std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA> history;
+  std::array<std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
+      history;
 
   [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,
                               std::uint8_t moveIndex, const ChessBoard &board,
-                              std::uint8_t depth, const MoveCTX *entryBestMove)
+                              std::uint8_t ply, const MoveCTX *entryBestMove)
       -> const MoveCTX *;
 
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
-                             std::uint8_t depth) -> std::int32_t;
-
-  void appendZobristHistory() {
-    zobristHistory[zobristHistoryIndex] = board.zobrist;
-    zobristHistoryIndex = (zobristHistoryIndex + 1) % ZOBRIST_HISTORY_SIZE;
-  }
+                             std::uint8_t depth, std::uint8_t ply)
+      -> std::int32_t;
 
   void popZobristHistory() {
     zobristHistoryIndex =
