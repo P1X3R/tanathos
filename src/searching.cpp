@@ -9,10 +9,33 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 
 static constexpr std::int32_t CHECKMATE_SCORE = 50000;
 static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
+
+static constexpr std::uint8_t REDUCTION_MAX_DEPTH = 13;
+static constexpr std::uint8_t REDUCTION_MAX_MOVE_INDEX = 218;
+static const std::array<std::array<std::uint32_t, REDUCTION_MAX_MOVE_INDEX>,
+                        REDUCTION_MAX_DEPTH>
+    REDUCTION_TABLE = []() {
+      std::array<std::array<std::uint32_t, REDUCTION_MAX_MOVE_INDEX>,
+                 REDUCTION_MAX_DEPTH>
+          result;
+
+      for (std::uint32_t depth = 0; depth < REDUCTION_MAX_DEPTH; depth++) {
+        for (std::uint32_t moveIndex = 0; moveIndex < REDUCTION_MAX_MOVE_INDEX;
+             moveIndex++) {
+          const std::uint32_t reduction =
+              1 +
+              static_cast<std::uint32_t>(std::floor(0.75 * std::log(depth))) +
+              (moveIndex / 6);
+
+          result[depth][moveIndex] = reduction;
+        }
+      }
+
+      return result;
+    }();
 
 struct EntryStoringCTX {
   std::uint8_t ply, depth;
@@ -231,10 +254,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
       static constexpr std::uint16_t HISTORY_GOOD = 1000;
       const bool isGoodMove =
           history[forWhitesInteger][move->from][move->to] > HISTORY_GOOD;
-      // const std::uint32_t reduction =
-      //     1 + static_cast<std::uint32_t>(std::floor(0.75 * std::log(depth)))
-      //     + (moveIndex / 6);
-      const std::uint32_t reduction = (depth >= 3 && moveIndex >= 4) ? 1 : 0;
+      const std::uint32_t reduction = REDUCTION_TABLE[depth][moveIndex];
 
       if (moveIndex == 0 || move->captured != Piece::NOTHING ||
           move->promotion != Piece::NOTHING || isKillerMove || isCheckMove ||
