@@ -10,8 +10,16 @@ target("tanathos")
     add_deps("sysifus")
     set_languages("c++20")
 
+    if is_mode("release") then
+        add_defines("NDEBUG")
+        set_optimize("fastest")
+        set_policy("build.optimization.lto", true)
+    end
+
     if is_mode("debug") then
         set_symbols("debug")
     end
 
-includes("test")
+if is_mode("debug") then
+    includes("test")
+end
