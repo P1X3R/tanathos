@@ -92,17 +92,17 @@ public:
   auto iterativeDeepening(std::uint64_t timeLimitMs) -> MoveCTX;
 
   void afterSearch() {
-    for (std::uint32_t fromSquare = 0; fromSquare < BOARD_AREA; fromSquare++) {
-      for (std::uint32_t toSquare = 0; toSquare < BOARD_AREA; toSquare++) {
-        history[0][fromSquare][toSquare] >>= 1;
+    auto reduceOldBonusColor = [&](const std::uint8_t forWhites) {
+      for (std::uint32_t fromSquare = 0; fromSquare < BOARD_AREA;
+           fromSquare++) {
+        for (std::uint32_t toSquare = 0; toSquare < BOARD_AREA; toSquare++) {
+          history[forWhites][fromSquare][toSquare] >>= 1;
+        }
       }
-    }
+    };
 
-    for (std::uint32_t fromSquare = 0; fromSquare < BOARD_AREA; fromSquare++) {
-      for (std::uint32_t toSquare = 0; toSquare < BOARD_AREA; toSquare++) {
-        history[1][fromSquare][toSquare] >>= 1;
-      }
-    }
+    reduceOldBonusColor(1);
+    reduceOldBonusColor(0);
 
     for (auto &depth : killers) {
       depth.fill(MoveCTX());
