@@ -1,4 +1,5 @@
 #include "./move.cpp"
+#include "./moveSorting.cpp"
 #include "./parsing.cpp"
 #include "gtest/gtest.h"
 

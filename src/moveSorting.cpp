@@ -20,17 +20,19 @@ enum MoveOrderBonus : std::uint16_t {
 constexpr std::uint16_t VICTIM_SCALING_FACTOR = 10;
 
 static auto leastValuablePiece(std::uint64_t attackers, const ChessBoard &board,
-                               const bool forWhites)
-    -> std::pair<Piece, std::uint64_t> {
+                               const bool forWhites, Piece &attackerType)
+    -> std::uint64_t {
   const auto &color = forWhites ? board.whites : board.blacks;
-  for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
-    const std::uint64_t attackersFromType = color[type] & attackers;
+  for (attackerType = Piece::PAWN; attackerType <= Piece::KING;
+       attackerType =
+           static_cast<Piece>(static_cast<std::uint8_t>(attackerType) + 1)) {
+    const std::uint64_t attackersFromType = color[attackerType] & attackers;
     if (attackersFromType != 0) {
-      return {static_cast<Piece>(type), attackersFromType & -attackersFromType};
+      return attackersFromType & -attackersFromType;
     }
   }
 
-  return {Piece::NOTHING, 0};
+  return 0;
 }
 
 static auto getAttackers(std::uint64_t flat, const ChessBoard &board,
@@ -100,16 +102,11 @@ static auto getAttackers(std::uint64_t flat, const ChessBoard &board,
   std::uint64_t occupancy = flat;
   std::uint64_t attackers = getAttackers(flat, board, true, to) |
                             getAttackers(flat, board, false, to);
+  Piece attackerType = original;
   gain[depth] = PIECE_VALUES[captured];
 
   do {
     forWhites = !forWhites;
-    auto [attackerType, attackerBit] =
-        leastValuablePiece(attackers, board, forWhites);
-    if (attackerBit == 0 && attackerType == Piece::NOTHING) {
-      continue;
-    }
-
     depth++;
     gain[depth] = PIECE_VALUES[attackerType] - gain[depth - 1];
 
@@ -133,8 +130,9 @@ static auto getAttackers(std::uint64_t flat, const ChessBoard &board,
                       attackingSidePieces[Piece::QUEEN]))) &
                    occupancy;
     }
-    fromSet = attackerBit;
-  } while (fromSet != 0 && depth < GAIN_LEN && attackers != 0);
+
+    fromSet = leastValuablePiece(attackers, board, forWhites, attackerType);
+  } while (fromSet != 0 && attackers != 0 && depth < GAIN_LEN);
 
   while (--depth > 0) {
     gain[depth - 1] = -std::max(-gain[depth - 1], gain[depth]);
