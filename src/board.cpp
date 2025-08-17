@@ -6,7 +6,6 @@
 #include <bit>
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 
 auto ChessBoard::isSquareUnderAttack(const std::int32_t square,
                                      const bool byWhites) const -> bool {
