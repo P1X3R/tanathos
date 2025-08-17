@@ -6,6 +6,7 @@
 #include "sysifus.h"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -86,8 +87,82 @@ static auto getAttackers(std::uint64_t flat, const ChessBoard &board,
   return result & flat;
 }
 
-[[nodiscard]] auto MoveCTX::see(const ChessBoard &board,
-                                const std::uint64_t flat) const
+static auto getPinnedAttackers(const std::uint64_t attackers,
+                               const bool forWhites, const ChessBoard &board,
+                               const std::int8_t attackerKingSquare,
+                               const std::uint64_t attackerFlat,
+                               const std::uint64_t attackersEnemyFlat)
+    -> std::uint64_t {
+  const auto &enemyColor = forWhites ? board.blacks : board.whites;
+
+  std::uint64_t bishopXRays = getBishopAttackByOccupancy(
+      attackerKingSquare, 0ULL,
+      enemyColor[Piece::BISHOP] | enemyColor[Piece::QUEEN]);
+  std::uint64_t bishopPinners = bishopXRays & attackersEnemyFlat;
+
+  std::uint64_t rookXRays = getRookAttackByOccupancy(
+      attackerKingSquare, 0ULL,
+      enemyColor[Piece::ROOK] | enemyColor[Piece::QUEEN]);
+  std::uint64_t rookPinners = rookXRays & attackersEnemyFlat;
+
+  std::uint64_t result = 0;
+
+  while (bishopPinners != 0) {
+    const auto pinnerSquare =
+        static_cast<std::int8_t>(std::countr_zero(bishopPinners));
+
+    const std::uint64_t xRay =
+        getBishopAttackByOccupancy(pinnerSquare, attackersEnemyFlat,
+                                   attackerFlat) &
+        bishopXRays;
+
+    if (std::popcount(xRay & attackerFlat) == 1) {
+      result |= xRay & attackerFlat;
+    }
+
+    bishopPinners &= bishopPinners - 1;
+  }
+
+  while (rookPinners != 0) {
+    const auto pinnerSquare =
+        static_cast<std::int8_t>(std::countr_zero(rookPinners));
+
+    const std::uint64_t xRay =
+        getRookAttackByOccupancy(pinnerSquare, attackersEnemyFlat,
+                                 attackerFlat) &
+        rookXRays;
+
+    if (std::popcount(xRay & attackerFlat) == 1) {
+      result |= xRay & attackerFlat;
+    }
+
+    rookPinners &= rookPinners - 1;
+  }
+
+  return result;
+}
+
+static auto squaresInBetween(std::uint32_t squareA, std::uint32_t squareB)
+    -> std::uint64_t {
+  const std::uint32_t rankA = squareA / BOARD_LENGTH;
+  const std::uint32_t rankB = squareB / BOARD_LENGTH;
+
+  const std::uint32_t fileA = squareA % BOARD_LENGTH;
+  const std::uint32_t fileB = squareB % BOARD_LENGTH;
+
+  if (rankA == rankB || fileA == fileB) {
+    return ROOK_ATTACK_MAP[squareA][0] & ROOK_ATTACK_MAP[squareB][0];
+  }
+  if (rankA - fileA == rankB - fileB || rankA + fileA == rankB + fileB) {
+    return BISHOP_ATTACK_MAP[squareA][0] & BISHOP_ATTACK_MAP[squareB][0];
+  }
+
+  return 0;
+}
+
+[[nodiscard]] auto MoveCTX::see(std::uint64_t whitesFlat,
+                                const ChessBoard &board,
+                                std::uint64_t blacksFlat) const
     -> std::int32_t {
   static constexpr std::size_t GAIN_LEN = 32;
   std::array<std::int32_t, GAIN_LEN> gain{};
@@ -99,19 +174,34 @@ static auto getAttackers(std::uint64_t flat, const ChessBoard &board,
       board.blacks[Piece::PAWN] | board.blacks[Piece::BISHOP] |
       board.blacks[Piece::ROOK] | board.blacks[Piece::QUEEN];
   std::uint64_t fromSet = 1ULL << from;
-  std::uint64_t occupancy = flat;
-  std::uint64_t attackers = getAttackers(flat, board, true, to) |
-                            getAttackers(flat, board, false, to);
+  std::uint64_t occupancy = whitesFlat | blacksFlat;
+  std::uint64_t attackers = getAttackers(occupancy, board, true, to) |
+                            getAttackers(occupancy, board, false, to);
   Piece attackerType = original;
+  std::uint32_t whiteKingSquare = std::countr_zero(board.whites[Piece::KING]);
+  std::uint32_t blackKingSquare = std::countr_zero(board.blacks[Piece::KING]);
   gain[depth] = PIECE_VALUES[captured];
 
   do {
     forWhites = !forWhites;
     depth++;
     gain[depth] = PIECE_VALUES[attackerType] - gain[depth - 1];
+    std::uint64_t &attackerFlat = forWhites ? whitesFlat : blacksFlat;
 
     attackers ^= fromSet;
     occupancy ^= fromSet;
+    attackerFlat ^= fromSet;
+
+    std::uint32_t &attackerKingSquare =
+        forWhites ? whiteKingSquare : blackKingSquare;
+
+    const std::uint64_t pinned =
+        getPinnedAttackers(attackers, forWhites, board,
+                           static_cast<std::int8_t>(attackerKingSquare),
+                           attackerFlat, forWhites ? blacksFlat : whitesFlat);
+    const std::uint64_t kingRay =
+        squaresInBetween(attackerKingSquare, to) | (1ULL << to);
+    attackers &= ~pinned | (pinned & kingRay);
 
     if ((fromSet & mayXRay) != 0) {
       const std::array<std::uint64_t, Piece::KING + 1> &attackingSidePieces =
@@ -131,6 +221,10 @@ static auto getAttackers(std::uint64_t flat, const ChessBoard &board,
                    occupancy;
     }
 
+    if (attackerType == Piece::KING) {
+      attackerKingSquare = to;
+    }
+
     fromSet = leastValuablePiece(attackers, board, forWhites, attackerType);
   } while (fromSet != 0 && attackers != 0 && depth < GAIN_LEN);
 
@@ -148,7 +242,8 @@ auto MoveCTX::score(
         std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
         &history,
     const std::uint8_t ply, const ChessBoard &board,
-    const std::uint64_t flat) const -> std::uint16_t {
+    const std::uint64_t whitesFlat, const std::uint64_t blacksFlat) const
+    -> std::uint16_t {
   if (entryBestMove != nullptr && *entryBestMove == *this) {
     return TRANSPOSITION_TABLE;
   }
@@ -156,7 +251,7 @@ auto MoveCTX::score(
 
   if (captured != Piece::NOTHING) {
     static constexpr std::uint8_t SEE_FACTOR = 10;
-    score += CAPTURES + (see(board, flat) * SEE_FACTOR);
+    score += CAPTURES + (see(whitesFlat, board, blacksFlat) * SEE_FACTOR);
   }
 
   score +=
@@ -174,8 +269,9 @@ auto MoveCTX::score(
 [[nodiscard]] auto
 Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
                     const ChessBoard &board, std::uint8_t ply,
-                    const MoveCTX *entryBestMove, const std::uint64_t flat)
-    -> const MoveCTX * {
+                    const MoveCTX *entryBestMove,
+                    const std::uint64_t whitesFlat,
+                    const std::uint64_t blacksFlat) -> const MoveCTX * {
   if (moves.empty()) {
     return nullptr;
   }
@@ -185,8 +281,8 @@ Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
 
   for (std::size_t i = moveIndex; i < moves.size(); i++) {
     const MoveCTX &move = moves[i];
-    const std::uint16_t moveScore =
-        move.score(entryBestMove, killers, history, ply, board, flat);
+    const std::uint16_t moveScore = move.score(
+        entryBestMove, killers, history, ply, board, whitesFlat, blacksFlat);
 
     if (moveScore > bestMoveScore) {
       bestMoveScore = moveScore;

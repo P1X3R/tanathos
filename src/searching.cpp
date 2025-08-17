@@ -16,27 +16,24 @@ static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
 
 static constexpr std::uint8_t REDUCTION_MAX_DEPTH = 13;
 static constexpr std::uint8_t REDUCTION_MAX_MOVE_INDEX = 218;
-static const std::array<std::array<std::uint32_t, REDUCTION_MAX_MOVE_INDEX>,
+static const std::array<std::array<std::uint8_t, REDUCTION_MAX_MOVE_INDEX>,
                         REDUCTION_MAX_DEPTH>
     REDUCTION_TABLE = []() {
-      std::array<std::array<std::uint32_t, REDUCTION_MAX_MOVE_INDEX>,
+      std::array<std::array<std::uint8_t, REDUCTION_MAX_MOVE_INDEX>,
                  REDUCTION_MAX_DEPTH>
           result;
 
       for (std::uint32_t depth = 0; depth < REDUCTION_MAX_DEPTH; depth++) {
         for (std::uint32_t moveIndex = 0; moveIndex < REDUCTION_MAX_MOVE_INDEX;
              moveIndex++) {
-          const auto floatDepth = static_cast<double>(depth);
-          const auto floatMoveIndex = static_cast<double>(moveIndex);
-          const double reduction =
-              (floatDepth >= 3 && floatMoveIndex >= 4)
-                  ? std::max(1.0, std::log(floatDepth) *
-                                      std::log(floatMoveIndex) / 2.0)
-                  : 0.0;
-          result[depth][moveIndex] = static_cast<std::uint32_t>(reduction);
+          const std::uint32_t reduction =
+              1 +
+              static_cast<std::uint32_t>(std::floor(0.75 * std::log(depth))) +
+              (moveIndex / 8);
+
+          result[depth][moveIndex] = reduction;
         }
       }
-
       return result;
     }();
 
@@ -144,10 +141,6 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
 
   afterSearch();
 
-#ifndef NDEBUG
-  std::cout << "Max depth: " << static_cast<std::int32_t>(depth) << '\n';
-#endif // !NDEBUG
-
   endTime = UINT64_MAX;
   return bestMove;
 }
@@ -157,7 +150,9 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
   std::int32_t bestScore = -INF;
 
   const bool forWhites = board.whiteToMove;
-  const std::uint64_t flat = board.getFlat(true) | board.getFlat(false);
+  const std::uint64_t whitesFlat = board.getFlat(true);
+  const std::uint64_t blacksFlat = board.getFlat(false);
+  const std::uint64_t flat = whitesFlat | blacksFlat;
 
   MoveGenerator generator;
   generator.generatePseudoLegal(board, false, forWhites);
@@ -167,8 +162,8 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
 
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        moveIndex++) {
-    const MoveCTX *move =
-        pickMove(generator.pseudoLegal, moveIndex, board, depth, nullptr, flat);
+    const MoveCTX *move = pickMove(generator.pseudoLegal, moveIndex, board,
+                                   depth, nullptr, whitesFlat, blacksFlat);
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();
@@ -184,6 +179,11 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
     undoMove(board, undo);
     popZobristHistory();
   }
+
+#ifndef NDEBUG
+  std::cout << "Score at depth " << static_cast<std::uint32_t>(depth) << ": "
+            << (forWhites ? bestScore : -bestScore) << '\n';
+#endif // !NDEBUG
 
   return bestMove;
 }
@@ -204,7 +204,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     return quiescene(alpha, beta, ply);
   }
   if (nowMs() >= endTime) {
-    return board.evaluate();
+    return forWhites ? board.evaluate() : -board.evaluate();
   }
 
   const std::uint8_t alphaOriginal = alpha;
@@ -227,7 +227,9 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
       entry != nullptr && entry->depth != 0 ? &entry->bestMove : nullptr;
   MoveCTX bestMove;
 
-  const std::uint64_t flat = board.getFlat(true) | board.getFlat(false);
+  const std::uint64_t whitesFlat = board.getFlat(true);
+  const std::uint64_t blacksFlat = board.getFlat(false);
+  const std::uint64_t flat = whitesFlat | blacksFlat;
 
   MoveGenerator generator;
   generator.generatePseudoLegal(board, false, forWhites);
@@ -235,14 +237,11 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
       generateCastlingAttackMask(flat, board);
   generator.appendCastling(board, castlingAttackMask, forWhites);
 
-  // const std::uint64_t enemyKingBitboard =
-  //     (forWhites ? board.blacks : board.whites)[Piece::KING];
-
   bool hasLegalMoves = false;
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        moveIndex++) {
     const MoveCTX *move = pickMove(generator.pseudoLegal, moveIndex, board, ply,
-                                   entryBestMove, flat);
+                                   entryBestMove, whitesFlat, blacksFlat);
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();
@@ -250,30 +249,25 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     if (!board.isKingInCheck(forWhites)) {
       hasLegalMoves = true;
 
-      std::int32_t score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+      std::int32_t score;
 
-      // const bool isTTMove = entryBestMove != nullptr && *move ==
-      // *entryBestMove; const bool isKillerMove =
-      //     killers[ply][0] == *move || killers[ply][1] == *move;
-      // const bool isCheckMove =
-      //     (1ULL << move->capturedSquare) == enemyKingBitboard;
-      // static constexpr std::uint16_t HISTORY_GOOD = 1000;
-      // const bool isGoodMove =
-      //     history[forWhitesInteger][move->from][move->to] > HISTORY_GOOD;
-      //
-      // if (moveIndex < 4 || move->captured != Piece::NOTHING ||
-      //     move->promotion != Piece::NOTHING || isKillerMove || isCheckMove ||
-      //     isGoodMove || isTTMove || depth < 2) {
-      //   score = -negamax(-beta, -alpha, depth - 1, ply + 1);
-      // } else {
-      //   const std::uint32_t reduction = REDUCTION_TABLE[depth][moveIndex];
-      //   score = -negamax(-alpha - 1, -alpha,
-      //                    reduction < depth - 1 ? depth - reduction : depth -
-      //                    1, ply + 1);
-      //   if (score > alpha && score < beta) {
-      //     score = -negamax(-beta, -alpha, depth - 1, ply + 1);
-      //   }
-      // }
+      const bool isTTMove = entryBestMove != nullptr && *move == *entryBestMove;
+      const bool isKillerMove =
+          killers[ply][0] == *move || killers[ply][1] == *move;
+      constexpr std::uint16_t HISTORY_GOOD = 1000;
+      const bool isGoodMove =
+          history[forWhitesInteger][move->from][move->to] > HISTORY_GOOD;
+
+      if (moveIndex < 4 || move->captured != Piece::NOTHING ||
+          move->promotion != Piece::NOTHING || isKillerMove || isGoodMove ||
+          isTTMove || depth < 2) {
+        score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+      } else {
+        score = -negamax(-alpha - 1, -alpha, depth - 1, ply + 1);
+        if (score > alpha && score < beta) {
+          score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+        }
+      }
 
       if (score > bestScore) {
         bestScore = score;
@@ -362,7 +356,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     const MoveCTX *move =
         pickMove(generator.pseudoLegal, moveIndex, board, ply,
                  entry != nullptr ? &entry->bestMove : nullptr,
-                 board.getFlat(true) | board.getFlat(false));
+                 board.getFlat(true), board.getFlat(false));
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();
