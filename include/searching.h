@@ -60,8 +60,8 @@ private:
   std::vector<TTEntry> table;
 };
 
-constexpr std::array<int, Piece::NOTHING + 1> PIECE_VALUES = {
-    100, 300, 300, 500, 900, 0, 0};
+constexpr std::array<std::int32_t, Piece::NOTHING + 1> PIECE_VALUES = {
+    100, 320, 330, 500, 900, 20000, 0};
 
 class Searching {
 public:
