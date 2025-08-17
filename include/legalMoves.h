@@ -40,9 +40,6 @@ struct MoveCTX {
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
     -> MoveCTX;
 
-void insertMoveInfo(MoveCTX &partial, const ChessBoard &board,
-                    bool getOriginalType, bool isPieceWhite);
-
 auto moveToUCI(const MoveCTX &move) -> std::string;
 
 void appendContext(MoveCTX &ctx, bool forWhites,

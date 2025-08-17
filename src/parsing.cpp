@@ -149,33 +149,6 @@ static auto getPieceAt(const std::uint32_t square, const ChessBoard &board)
   return std::make_pair(Piece::NOTHING, false);
 }
 
-void insertMoveInfo(MoveCTX &partial, const ChessBoard &board,
-                    const bool getOriginalType, bool isPieceWhite) {
-  if (getOriginalType) {
-    std::pair<Piece, bool> pieceInfo = getPieceAt(partial.from, board);
-    partial.original = pieceInfo.first;
-    isPieceWhite = pieceInfo.second;
-  }
-
-  // Get captured piece info depending on en passant
-  const std::int32_t capturedPawnSquare =
-      isPieceWhite ? board.enPassantSquare - BOARD_LENGTH
-                   : board.enPassantSquare + BOARD_LENGTH;
-
-  const bool isEnPassantCapture =
-      partial.original == Piece::PAWN && board.enPassantSquare != 0 &&
-      std::abs(partial.from - capturedPawnSquare) == 1 &&
-      partial.to == board.enPassantSquare;
-
-  if (isEnPassantCapture) {
-    partial.capturedSquare = capturedPawnSquare;
-    partial.captured = Piece::PAWN;
-  } else {
-    partial.capturedSquare = partial.to;
-    partial.captured = getPieceAt(partial.to, board).first;
-  }
-}
-
 auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
     -> MoveCTX {
   MoveCTX ctx;
@@ -193,7 +166,27 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
   ctx.from = (fromRank * BOARD_LENGTH) + fromFile;
   ctx.to = (toRank * BOARD_LENGTH) + toFile;
 
-  insertMoveInfo(ctx, board, true, false);
+  std::pair<Piece, bool> pieceInfo = getPieceAt(ctx.from, board);
+  ctx.original = pieceInfo.first;
+  bool isPieceWhite = pieceInfo.second;
+
+  // Get captured piece info depending on en passant
+  const std::int32_t capturedPawnSquare =
+      isPieceWhite ? board.enPassantSquare - BOARD_LENGTH
+                   : board.enPassantSquare + BOARD_LENGTH;
+
+  const bool isEnPassantCapture =
+      ctx.original == Piece::PAWN && board.enPassantSquare != 0 &&
+      std::abs(ctx.from - capturedPawnSquare) == 1 &&
+      ctx.to == board.enPassantSquare;
+
+  if (isEnPassantCapture) {
+    ctx.capturedSquare = capturedPawnSquare;
+    ctx.captured = Piece::PAWN;
+  } else {
+    ctx.capturedSquare = ctx.to;
+    ctx.captured = getPieceAt(ctx.to, board).first;
+  }
 
   // Get promotions
   static constexpr std::uint32_t algebraicLengthIfPromotion = 5;
