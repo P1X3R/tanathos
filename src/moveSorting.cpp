@@ -249,7 +249,7 @@ static auto squaresInBetween(std::uint32_t squareA, std::uint32_t squareB)
   return gain[0];
 }
 
-void MoveGenerator::preSort(const MoveCTX *entryBestMove,
+void MoveGenerator::sort(const MoveCTX *entryBestMove,
                             const std::uint8_t ply, const bool forWhites) {
   if (pseudoLegal.empty()) {
     generatePseudoLegal(false, forWhites);

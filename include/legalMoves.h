@@ -98,7 +98,7 @@ public:
 
   void appendCastling(const ChessBoard &board, bool forWhites);
 
-  void preSort(const MoveCTX *entryBestMove, std::uint8_t ply, bool forWhites);
+  void sort(const MoveCTX *entryBestMove, std::uint8_t ply, bool forWhites);
 
 private:
   std::uint64_t friendlyFlat = 0;

@@ -220,7 +220,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   MoveGenerator generator(killers, history, board);
   generator.generatePseudoLegal(false, forWhites);
   generator.appendCastling(board, forWhites);
-  generator.preSort(entryBestMove, ply, forWhites);
+  generator.sort(entryBestMove, ply, forWhites);
 
   bool hasLegalMoves = false;
   std::uint8_t moveIndex = 0;
@@ -338,7 +338,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   // This generates only pseudo-legal kills, that's why's the `true` flag there
   MoveGenerator generator(killers, history, board);
   generator.generatePseudoLegal(true, forWhites);
-  generator.preSort(entry != nullptr ? &entry->bestMove : nullptr, ply,
+  generator.sort(entry != nullptr ? &entry->bestMove : nullptr, ply,
                     forWhites);
 
   for (const MoveCTX &move : generator.buckets[BucketEnum::GOOD_CAPTURES]) {
