@@ -30,8 +30,7 @@ struct MoveCTX {
         const std::array<
             std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
             &history,
-        std::uint8_t ply, const ChessBoard &board, std::uint64_t whitesFlat,
-        std::uint64_t blacksFlat) const -> std::uint16_t;
+        std::uint8_t ply, const ChessBoard &board) const -> std::uint16_t;
 
   [[nodiscard]] auto see(std::uint64_t whitesFlat, const ChessBoard &board,
                          std::uint64_t blacksFlat) const -> std::int32_t;

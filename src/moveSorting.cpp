@@ -20,6 +20,23 @@ enum MoveOrderBonus : std::uint16_t {
 
 constexpr std::uint16_t VICTIM_SCALING_FACTOR = 10;
 
+static constexpr std::array<std::array<std::uint16_t, Piece::KING + 1>,
+                            Piece::KING + 1>
+    MVV_LVA = [] {
+      std::array<std::array<std::uint16_t, Piece::KING + 1>, Piece::KING + 1>
+          table{};
+      constexpr std::uint16_t AGGRESSOR_DECREASING = 6;
+
+      for (int aggressor = 0; aggressor <= Piece::KING; ++aggressor) {
+        for (int victim = 0; victim <= Piece::KING; ++victim) {
+          table[aggressor][victim] =
+              PIECE_VALUES[victim] * VICTIM_SCALING_FACTOR +
+              (AGGRESSOR_DECREASING - aggressor);
+        }
+      }
+      return table;
+    }();
+
 static auto leastValuablePiece(std::uint64_t attackers, const ChessBoard &board,
                                const bool forWhites, Piece &attackerType)
     -> std::uint64_t {
@@ -241,8 +258,7 @@ auto MoveCTX::score(
     const std::array<
         std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
         &history,
-    const std::uint8_t ply, const ChessBoard &board,
-    const std::uint64_t whitesFlat, const std::uint64_t blacksFlat) const
+    const std::uint8_t ply, const ChessBoard &board) const
     -> std::uint16_t {
   if (entryBestMove != nullptr && *entryBestMove == *this) {
     return TRANSPOSITION_TABLE;
@@ -251,7 +267,7 @@ auto MoveCTX::score(
 
   if (captured != Piece::NOTHING) {
     static constexpr std::uint8_t SEE_FACTOR = 10;
-    score += CAPTURES + (see(whitesFlat, board, blacksFlat) * SEE_FACTOR);
+    score += CAPTURES + (MVV_LVA[original][captured] * SEE_FACTOR);
   }
 
   score +=
@@ -269,9 +285,7 @@ auto MoveCTX::score(
 [[nodiscard]] auto
 Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
                     const ChessBoard &board, std::uint8_t ply,
-                    const MoveCTX *entryBestMove,
-                    const std::uint64_t whitesFlat,
-                    const std::uint64_t blacksFlat) -> const MoveCTX * {
+                    const MoveCTX *entryBestMove) -> const MoveCTX * {
   if (moves.empty()) {
     return nullptr;
   }
@@ -282,7 +296,7 @@ Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
   for (std::size_t i = moveIndex; i < moves.size(); i++) {
     const MoveCTX &move = moves[i];
     const std::uint16_t moveScore = move.score(
-        entryBestMove, killers, history, ply, board, whitesFlat, blacksFlat);
+        entryBestMove, killers, history, ply, board);
 
     if (moveScore > bestMoveScore) {
       bestMoveScore = moveScore;

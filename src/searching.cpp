@@ -162,8 +162,8 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
 
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        moveIndex++) {
-    const MoveCTX *move = pickMove(generator.pseudoLegal, moveIndex, board,
-                                   depth, nullptr, whitesFlat, blacksFlat);
+    const MoveCTX *move =
+        pickMove(generator.pseudoLegal, moveIndex, board, depth, nullptr);
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();
@@ -240,8 +240,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   bool hasLegalMoves = false;
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        moveIndex++) {
-    const MoveCTX *move = pickMove(generator.pseudoLegal, moveIndex, board, ply,
-                                   entryBestMove, whitesFlat, blacksFlat);
+    const MoveCTX *move =
+        pickMove(generator.pseudoLegal, moveIndex, board, ply, entryBestMove);
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();
@@ -355,8 +355,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
        moveIndex++) {
     const MoveCTX *move =
         pickMove(generator.pseudoLegal, moveIndex, board, ply,
-                 entry != nullptr ? &entry->bestMove : nullptr,
-                 board.getFlat(true), board.getFlat(false));
+                 entry != nullptr ? &entry->bestMove : nullptr);
     const UndoCTX undo(*move, board);
     makeMove(board, *move);
     appendZobristHistory();

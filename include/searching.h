@@ -127,9 +127,7 @@ private:
 
   [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,
                               std::uint8_t moveIndex, const ChessBoard &board,
-                              std::uint8_t ply, const MoveCTX *entryBestMove,
-                              std::uint64_t whitesFlat,
-                              std::uint64_t blacksFlat) -> const MoveCTX *;
+                              std::uint8_t ply, const MoveCTX *entryBestMove) -> const MoveCTX *;
 
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
                              std::uint8_t depth, std::uint8_t ply)
