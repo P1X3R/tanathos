@@ -41,25 +41,69 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
 
 auto moveToUCI(const MoveCTX &move) -> std::string;
 
-void appendContext(MoveCTX &ctx, bool forWhites,
-                   const std::array<std::uint64_t, Piece::KING + 1> &enemyColor,
-                   std::uint64_t enemyFlat, std::vector<MoveCTX> &pseudoLegal,
-                   std::int32_t enPassantSquare);
-
-auto generateCastlingAttackMask(std::uint64_t flat, const ChessBoard &board)
-    -> CastlingRights;
-
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
 
+static constexpr std::uint8_t BUCKETS_LEN = 7;
+enum BucketEnum : std::uint8_t {
+  TT = 0,
+  GOOD_CAPTURES,
+  KILLERS,
+  PROMOTIONS,
+  HISTORY_HEURISTICS,
+  BAD_CAPTURES,
+  QUIET,
+};
+
 // For only one color
-struct MoveGenerator {
+class MoveGenerator {
+public:
   std::vector<MoveCTX> pseudoLegal;
+  std::array<std::vector<MoveCTX>, BUCKETS_LEN> buckets;
 
-  MoveGenerator() { pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION); }
+  const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> *killers = nullptr;
+  const std::array<
+      std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
+      *history = nullptr;
 
-  void generatePseudoLegal(const ChessBoard &board, bool onlyKills,
-                           bool forWhites);
+  const ChessBoard &board;
 
-  void appendCastling(const ChessBoard &board,
-                      const CastlingRights &castlingAttackMask, bool forWhites);
+  MoveGenerator(
+      const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> &_killers,
+      const std::array<
+          std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
+          &_history,
+      const ChessBoard &_board)
+      : killers(&_killers), history(&_history), board(_board) {
+    pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION);
+
+    buckets[BucketEnum::TT].reserve(1);
+    buckets[BucketEnum::GOOD_CAPTURES].reserve(8);
+    buckets[BucketEnum::KILLERS].reserve(2);
+    buckets[BucketEnum::PROMOTIONS].reserve(24);
+    buckets[BucketEnum::HISTORY_HEURISTICS].reserve(32);
+    buckets[BucketEnum::BAD_CAPTURES].reserve(8);
+    buckets[BucketEnum::QUIET].reserve(48);
+  }
+
+  explicit MoveGenerator(const ChessBoard &_board) : board(_board) {
+    pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION);
+
+    buckets[BucketEnum::TT].reserve(1);
+    buckets[BucketEnum::GOOD_CAPTURES].reserve(8);
+    buckets[BucketEnum::KILLERS].reserve(2);
+    buckets[BucketEnum::PROMOTIONS].reserve(24);
+    buckets[BucketEnum::HISTORY_HEURISTICS].reserve(32);
+    buckets[BucketEnum::BAD_CAPTURES].reserve(8);
+    buckets[BucketEnum::QUIET].reserve(48);
+  }
+
+  void generatePseudoLegal(bool onlyKills, bool forWhites);
+
+  void appendCastling(const ChessBoard &board, bool forWhites);
+
+private:
+  std::uint64_t friendlyFlat = 0;
+  std::uint64_t enemyFlat = 0;
+
+  void appendContext(MoveCTX &ctx, bool forWhites);
 };

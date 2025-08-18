@@ -123,14 +123,13 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
   MoveCTX bestMove;
 
   static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 12;
-  std::uint8_t depth = 1;
-  for (; depth < MAX_SEARCHING_DEPTH; depth++) {
+  for (std::uint8_t depth = 1; depth < MAX_SEARCHING_DEPTH; depth++) {
     if (nowMs() >= endTime) {
       break;
     }
 
     // The search function assigns the best move
-    MoveCTX PVMove = search(depth);
+    const MoveCTX PVMove = search(depth);
 
     if (nowMs() < endTime) {
       bestMove = PVMove;
@@ -150,29 +149,21 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
   std::int32_t bestScore = -INF;
 
   const bool forWhites = board.whiteToMove;
-  const std::uint64_t whitesFlat = board.getFlat(true);
-  const std::uint64_t blacksFlat = board.getFlat(false);
-  const std::uint64_t flat = whitesFlat | blacksFlat;
 
-  MoveGenerator generator;
-  generator.generatePseudoLegal(board, false, forWhites);
-  const CastlingRights castlingAttackMask =
-      generateCastlingAttackMask(flat, board);
-  generator.appendCastling(board, castlingAttackMask, forWhites);
+  MoveGenerator generator(killers, history, board);
+  generator.generatePseudoLegal(false, forWhites);
+  generator.appendCastling(board, forWhites);
 
-  for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
-       moveIndex++) {
-    const MoveCTX *move =
-        pickMove(generator.pseudoLegal, moveIndex, board, depth, nullptr);
-    const UndoCTX undo(*move, board);
-    makeMove(board, *move);
+  for (const MoveCTX &move : generator.pseudoLegal) {
+    const UndoCTX undo(move, board);
+    makeMove(board, move);
     appendZobristHistory();
 
     if (!board.isKingInCheck(forWhites)) {
       std::int32_t score = -negamax(-INF, INF, depth - 1, 1);
       if (score > bestScore) {
         bestScore = score;
-        bestMove = *move;
+        bestMove = move;
       }
     }
 
@@ -227,15 +218,9 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
       entry != nullptr && entry->depth != 0 ? &entry->bestMove : nullptr;
   MoveCTX bestMove;
 
-  const std::uint64_t whitesFlat = board.getFlat(true);
-  const std::uint64_t blacksFlat = board.getFlat(false);
-  const std::uint64_t flat = whitesFlat | blacksFlat;
-
-  MoveGenerator generator;
-  generator.generatePseudoLegal(board, false, forWhites);
-  const CastlingRights castlingAttackMask =
-      generateCastlingAttackMask(flat, board);
-  generator.appendCastling(board, castlingAttackMask, forWhites);
+  MoveGenerator generator(killers, history, board);
+  generator.generatePseudoLegal(false, forWhites);
+  generator.appendCastling(board, forWhites);
 
   bool hasLegalMoves = false;
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
@@ -348,8 +333,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   const TTEntry *entry = TT.probe(board.zobrist);
 
   // This generates only pseudo-legal kills, that's why's the `true` flag there
-  MoveGenerator generator;
-  generator.generatePseudoLegal(board, true, forWhites);
+  MoveGenerator generator(killers, history, board);
+  generator.generatePseudoLegal(true, forWhites);
 
   for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
        moveIndex++) {

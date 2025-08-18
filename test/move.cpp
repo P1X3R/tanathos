@@ -399,11 +399,9 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
     board.zobrist = initialHash;
 
     // Generate all legal moves
-    MoveGenerator generator;
-    generator.generatePseudoLegal(board, false, board.whiteToMove);
-    const CastlingRights castlingAttackMask = generateCastlingAttackMask(
-        board.getFlat(true) | board.getFlat(true), board);
-    generator.appendCastling(board, castlingAttackMask, board.whiteToMove);
+    MoveGenerator generator(board);
+    generator.generatePseudoLegal(false, board.whiteToMove);
+    generator.appendCastling(board, board.whiteToMove);
 
     // Test each move
     for (const auto &move : generator.pseudoLegal) {

@@ -7,27 +7,27 @@
 #include <cstdint>
 #include <cstdlib>
 
-void appendContext(MoveCTX &ctx, const bool forWhites,
-                   const std::array<std::uint64_t, Piece::KING + 1> &enemyColor,
-                   const std::uint64_t enemyFlat,
-                   std::vector<MoveCTX> &pseudoLegal,
-                   const std::int32_t enPassantSquare) {
-  const std::int32_t capturedPawnSquare = forWhites
-                                              ? enPassantSquare - BOARD_LENGTH
-                                              : enPassantSquare + BOARD_LENGTH;
+void MoveGenerator::appendContext(MoveCTX &ctx, const bool forWhites) {
+  // Determine the captured square and captured piece
+  const std::int32_t capturedPawnSquare =
+      forWhites ? board.enPassantSquare - BOARD_LENGTH
+                : board.enPassantSquare + BOARD_LENGTH;
 
   const bool isEnPassantCapture =
-      ctx.original == Piece::PAWN && enPassantSquare != 0 &&
-      std::abs(ctx.from - capturedPawnSquare) == 1 && ctx.to == enPassantSquare;
+      ctx.original == Piece::PAWN && board.enPassantSquare != 0 &&
+      std::abs(ctx.from - capturedPawnSquare) == 1 &&
+      ctx.to == board.enPassantSquare;
 
   const std::uint64_t toBit = 1ULL << ctx.to;
 
   ctx.capturedSquare = ctx.to;
   if (isEnPassantCapture) {
     ctx.capturedSquare = capturedPawnSquare;
-    ctx.to = enPassantSquare;
+    ctx.to = board.enPassantSquare;
     ctx.captured = Piece::PAWN;
   } else if ((enemyFlat & toBit) != 0) {
+    const auto &enemyColor = forWhites ? board.blacks : board.whites;
+
     // Handle regular captures
     for (std::uint32_t enemyType = Piece::PAWN; enemyType <= Piece::KING;
          enemyType++) {
@@ -54,16 +54,12 @@ void appendContext(MoveCTX &ctx, const bool forWhites,
   }
 }
 
-void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
-                                        const bool onlyKills,
+void MoveGenerator::generatePseudoLegal(const bool onlyKills,
                                         const bool forWhites) {
-  const std::array<std::uint64_t, Piece::KING + 1> &color =
-      forWhites ? board.whites : board.blacks;
-  const std::array<std::uint64_t, Piece::KING + 1> &enemyColor =
-      forWhites ? board.blacks : board.whites;
+  const auto &color = forWhites ? board.whites : board.blacks;
 
-  const std::uint64_t friendlyFlat = board.getFlat(forWhites);
-  const std::uint64_t enemyFlat = board.getFlat(!forWhites);
+  friendlyFlat = board.getFlat(forWhites);
+  enemyFlat = board.getFlat(!forWhites);
 
   for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
     std::uint64_t typeBitboard = color[type];
@@ -99,8 +95,7 @@ void MoveGenerator::generatePseudoLegal(const ChessBoard &board,
             .promotion = Piece::NOTHING,
         };
 
-        appendContext(ctx, forWhites, enemyColor, enemyFlat, pseudoLegal,
-                      static_cast<std::int8_t>(board.enPassantSquare));
+        appendContext(ctx, forWhites);
 
         pseudoLegalBits &= pseudoLegalBits - 1;
       }
@@ -164,9 +159,10 @@ auto generateCastlingAttackMask(const std::uint64_t flat,
 }
 
 void MoveGenerator::appendCastling(const ChessBoard &board,
-                                   const CastlingRights &castlingAttackMask,
                                    const bool forWhites) {
   std::uint64_t castleMask = 0;
+  const CastlingRights castlingAttackMask =
+      generateCastlingAttackMask(friendlyFlat | enemyFlat, board);
 
   if (forWhites) {
     const bool canKingSide =
