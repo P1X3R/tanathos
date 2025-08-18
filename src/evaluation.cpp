@@ -9,7 +9,6 @@ auto ChessBoard::evaluate() const -> std::int32_t {
 
   // Iterate through all piece types
   for (std::uint32_t type = Piece::PAWN; type <= Piece::KING; type++) {
-
     for (std::uint32_t square = 0; square < BOARD_AREA; square++) {
       const std::uint32_t flippedSquare = square ^ (BOARD_AREA - BOARD_LENGTH);
 
@@ -22,10 +21,6 @@ auto ChessBoard::evaluate() const -> std::int32_t {
         score -= PIECE_VALUES[type];
         score -= PSQT[type][square];
       }
-    }
-
-    // Evaluate black pieces
-    for (std::uint32_t square = 0; square < BOARD_AREA; square++) {
     }
   }
 
