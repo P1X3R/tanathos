@@ -127,8 +127,9 @@ struct CastlingPath {
   std::array<int32_t, 3> attackPath;
 };
 
-auto generateCastlingAttackMask(const std::uint64_t flat,
-                                const ChessBoard &board) -> CastlingRights {
+static auto generateCastlingAttackMask(const std::uint64_t flat,
+                                       const ChessBoard &board)
+    -> CastlingRights {
   static constexpr std::array<CastlingPath, 4> CASTLING_PATHS = {{
       // White king-side
       {.piecePath = (1ULL << F1) | (1ULL << G1), .attackPath = {E1, F1, G1}},

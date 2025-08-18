@@ -24,14 +24,6 @@ struct MoveCTX {
            this->promotion == other.promotion;
   }
 
-  [[nodiscard]] auto
-  score(const MoveCTX *entryBestMove,
-        const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> &killers,
-        const std::array<
-            std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
-            &history,
-        std::uint8_t ply, const ChessBoard &board) const -> std::uint16_t;
-
   [[nodiscard]] auto see(std::uint64_t whitesFlat, const ChessBoard &board,
                          std::uint64_t blacksFlat) const -> std::int32_t;
 };
@@ -41,7 +33,7 @@ auto fromAlgebraic(const std::string_view &algebraic, const ChessBoard &board)
 
 auto moveToUCI(const MoveCTX &move) -> std::string;
 
-constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 256;
+constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 218;
 
 static constexpr std::uint8_t BUCKETS_LEN = 7;
 enum BucketEnum : std::uint8_t {
@@ -53,6 +45,11 @@ enum BucketEnum : std::uint8_t {
   BAD_CAPTURES,
   QUIET,
 };
+
+inline auto operator++(BucketEnum &bucket) -> BucketEnum & {
+  bucket = static_cast<BucketEnum>(static_cast<std::uint8_t>(bucket) + 1);
+  return bucket;
+}
 
 // For only one color
 class MoveGenerator {
@@ -100,6 +97,8 @@ public:
   void generatePseudoLegal(bool onlyKills, bool forWhites);
 
   void appendCastling(const ChessBoard &board, bool forWhites);
+
+  void preSort(const MoveCTX *entryBestMove, std::uint8_t ply, bool forWhites);
 
 private:
   std::uint64_t friendlyFlat = 0;

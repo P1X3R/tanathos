@@ -46,7 +46,7 @@ public:
   }
 
 private:
-  static constexpr std::size_t TT_SIZE_MB = 128;
+  static constexpr std::size_t TT_SIZE_MB = 64;
   static constexpr std::size_t MB_TO_BYTE_SCALE_FACTOR = 1048576;
 
   static constexpr std::size_t TT_SIZE_BYTES =
@@ -124,10 +124,6 @@ private:
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
   std::array<std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
       history;
-
-  [[nodiscard]] auto pickMove(std::vector<MoveCTX> &moves,
-                              std::uint8_t moveIndex, const ChessBoard &board,
-                              std::uint8_t ply, const MoveCTX *entryBestMove) -> const MoveCTX *;
 
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
                              std::uint8_t depth, std::uint8_t ply)

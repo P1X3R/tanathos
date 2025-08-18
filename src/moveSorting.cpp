@@ -10,13 +10,10 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
-enum MoveOrderBonus : std::uint16_t {
-  TRANSPOSITION_TABLE = 50000,
-  CAPTURES = 10000,
-  KILLER_MOVE = 5000,
-  HISTORY = 3000,
-};
+using std::greater;
+using std::int16_t;
 
 constexpr std::uint16_t VICTIM_SCALING_FACTOR = 10;
 
@@ -252,61 +249,68 @@ static auto squaresInBetween(std::uint32_t squareA, std::uint32_t squareB)
   return gain[0];
 }
 
-auto MoveCTX::score(
-    const MoveCTX *entryBestMove,
-    const std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> &killers,
-    const std::array<
-        std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
-        &history,
-    const std::uint8_t ply, const ChessBoard &board) const
-    -> std::uint16_t {
-  if (entryBestMove != nullptr && *entryBestMove == *this) {
-    return TRANSPOSITION_TABLE;
-  }
-  std::uint16_t score = 0;
-
-  if (captured != Piece::NOTHING) {
-    static constexpr std::uint8_t SEE_FACTOR = 10;
-    score += CAPTURES + (MVV_LVA[original][captured] * SEE_FACTOR);
+void MoveGenerator::preSort(const MoveCTX *entryBestMove,
+                            const std::uint8_t ply, const bool forWhites) {
+  if (pseudoLegal.empty()) {
+    generatePseudoLegal(false, forWhites);
   }
 
-  score +=
-      HISTORY + history[static_cast<std::size_t>(!board.whiteToMove)][from][to];
+  const std::uint64_t whitesFlat = forWhites ? friendlyFlat : enemyFlat;
+  const std::uint64_t blacksFlat = forWhites ? enemyFlat : friendlyFlat;
 
-  if (killers[ply][0] == *this || killers[ply][1] == *this) {
-    score += KILLER_MOVE;
-  }
-
-  score += PIECE_VALUES[promotion] * VICTIM_SCALING_FACTOR;
-
-  return score;
-}
-
-[[nodiscard]] auto
-Searching::pickMove(std::vector<MoveCTX> &moves, std::uint8_t moveIndex,
-                    const ChessBoard &board, std::uint8_t ply,
-                    const MoveCTX *entryBestMove) -> const MoveCTX * {
-  if (moves.empty()) {
-    return nullptr;
-  }
-
-  std::int32_t bestMoveScore = -1;
-  std::int16_t bestMoveIndex = -1;
-
-  for (std::size_t i = moveIndex; i < moves.size(); i++) {
-    const MoveCTX &move = moves[i];
-    const std::uint16_t moveScore = move.score(
-        entryBestMove, killers, history, ply, board);
-
-    if (moveScore > bestMoveScore) {
-      bestMoveScore = moveScore;
-      bestMoveIndex = static_cast<std::int16_t>(i);
+  for (const MoveCTX &move : pseudoLegal) {
+    if (entryBestMove != nullptr && move == *entryBestMove) {
+      buckets[BucketEnum::TT][0] = move;
+      continue;
     }
+
+    if (move.captured != Piece::NOTHING) {
+      const std::int32_t seeScore = move.see(whitesFlat, board, blacksFlat);
+
+      if (seeScore > 0) {
+        buckets[BucketEnum::GOOD_CAPTURES].push_back(move);
+      } else {
+        buckets[BucketEnum::BAD_CAPTURES].push_back(move);
+      }
+
+      continue;
+    }
+
+    if (killers != nullptr &&
+        ((*killers)[ply][0] == move || (*killers)[ply][1] == move)) {
+      buckets[BucketEnum::KILLERS].push_back(move);
+      continue;
+    }
+
+    if (move.promotion != Piece::NOTHING) {
+      buckets[BucketEnum::PROMOTIONS].push_back(move);
+      continue;
+    }
+
+    if (history != nullptr &&
+        (*history)[static_cast<std::size_t>(forWhites)][move.from][move.to] !=
+            0) {
+      buckets[BucketEnum::HISTORY_HEURISTICS].push_back(move);
+      continue;
+    }
+
+    buckets[BucketEnum::QUIET].push_back(move);
   }
 
-  if (bestMoveIndex != -1) {
-    std::swap(moves[bestMoveIndex], moves[moveIndex]);
-  }
+  static auto compareCaptures = [](const MoveCTX &first,
+                                   const MoveCTX &second) {
+    return MVV_LVA[first.original][first.captured] >
+           MVV_LVA[second.original][second.captured];
+  };
 
-  return &moves[moveIndex];
+  std::ranges::sort(buckets[BucketEnum::GOOD_CAPTURES], compareCaptures);
+  std::ranges::sort(buckets[BucketEnum::BAD_CAPTURES], compareCaptures);
+  std::ranges::sort(
+      buckets[BucketEnum::HISTORY_HEURISTICS],
+      [forWhites, this](const MoveCTX &first, const MoveCTX &second) {
+        return (*history)[forWhites][first.from][first.to] >
+               (*history)[forWhites][second.from][second.to];
+      });
+
+  pseudoLegal.clear();
 }

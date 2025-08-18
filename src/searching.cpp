@@ -7,7 +7,6 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <iostream>
 
@@ -28,8 +27,7 @@ static const std::array<std::array<std::uint8_t, REDUCTION_MAX_MOVE_INDEX>,
              moveIndex++) {
           const std::uint32_t reduction =
               1 +
-              static_cast<std::uint32_t>(std::floor(0.75 * std::log(depth))) +
-              (moveIndex / 8);
+              static_cast<std::uint32_t>(std::log2(moveIndex + 1) * depth / 3);
 
           result[depth][moveIndex] = reduction;
         }
@@ -184,9 +182,6 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     -> std::int32_t {
   const bool forWhites = board.whiteToMove;
   const auto forWhitesInteger = static_cast<const std::uint8_t>(forWhites);
-#ifndef NDEBUG
-  nodes++;
-#endif // !NDEBUG
 
   if (board.isDraw(zobristHistory)) {
     return 0;
@@ -194,6 +189,10 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   if (depth == 0) {
     return quiescene(alpha, beta, ply);
   }
+
+#ifndef NDEBUG
+  nodes++;
+#endif // !NDEBUG
   if (nowMs() >= endTime) {
     return forWhites ? board.evaluate() : -board.evaluate();
   }
@@ -221,77 +220,81 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   MoveGenerator generator(killers, history, board);
   generator.generatePseudoLegal(false, forWhites);
   generator.appendCastling(board, forWhites);
+  generator.preSort(entryBestMove, ply, forWhites);
 
   bool hasLegalMoves = false;
-  for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
-       moveIndex++) {
-    const MoveCTX *move =
-        pickMove(generator.pseudoLegal, moveIndex, board, ply, entryBestMove);
-    const UndoCTX undo(*move, board);
-    makeMove(board, *move);
-    appendZobristHistory();
+  std::uint8_t moveIndex = 0;
+  for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
+       ++bucket) {
+    for (const MoveCTX &move : generator.buckets[bucket]) {
+      const UndoCTX undo(move, board);
+      makeMove(board, move);
+      appendZobristHistory();
 
-    if (!board.isKingInCheck(forWhites)) {
-      hasLegalMoves = true;
+      if (!board.isKingInCheck(forWhites)) {
+        hasLegalMoves = true;
 
-      std::int32_t score;
+        std::int32_t score;
 
-      const bool isTTMove = entryBestMove != nullptr && *move == *entryBestMove;
-      const bool isKillerMove =
-          killers[ply][0] == *move || killers[ply][1] == *move;
-      constexpr std::uint16_t HISTORY_GOOD = 1000;
-      const bool isGoodMove =
-          history[forWhitesInteger][move->from][move->to] > HISTORY_GOOD;
+        constexpr std::uint16_t HISTORY_GOOD = 1000;
+        const bool isGoodMove =
+            history[forWhitesInteger][move.from][move.to] > HISTORY_GOOD;
 
-      if (moveIndex < 4 || move->captured != Piece::NOTHING ||
-          move->promotion != Piece::NOTHING || isKillerMove || isGoodMove ||
-          isTTMove || depth < 2) {
-        score = -negamax(-beta, -alpha, depth - 1, ply + 1);
-      } else {
-        score = -negamax(-alpha - 1, -alpha, depth - 1, ply + 1);
-        if (score > alpha && score < beta) {
+        // Not reduce if bucket is: TT, good capture, killer or promotion
+        if (bucket <= BucketEnum::PROMOTIONS || moveIndex == 0 || isGoodMove ||
+            depth < 2) {
           score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+        } else {
+          score = -negamax(
+              -alpha - 1, -alpha,
+              std::max(1, depth - REDUCTION_TABLE[depth][moveIndex]), ply + 1);
+          if (score > alpha && score < beta) {
+            score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+          }
         }
-      }
 
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = *move;
-      }
-      alpha = std::max(score, alpha);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = move;
+        }
+        alpha = std::max(score, alpha);
 
-      if (nowMs() >= endTime) {
-        undoMove(board, undo);
-        popZobristHistory();
-        return std::max(board.evaluate(), bestScore);
-      }
+        if (nowMs() >= endTime) {
+          undoMove(board, undo);
+          popZobristHistory();
+          moveIndex++;
+          return std::max(board.evaluate(), bestScore);
+        }
 
-      if (alpha >= beta) {
+        if (alpha >= beta) {
 #ifndef NDEBUG
-        cuts++;
+          cuts++;
 #endif
 
-        if (move->captured == Piece::NOTHING) {
-          // Store killer moves
-          if (killers[ply][0] != *move) {
-            killers[ply][1] = killers[ply][0];
-            killers[ply][0] = *move;
+          if (move.captured == Piece::NOTHING) {
+            // Store killer moves
+            if (killers[ply][0] != move) {
+              killers[ply][1] = killers[ply][0];
+              killers[ply][0] = move;
+            }
+
+            std::uint16_t &entry =
+                history[forWhitesInteger][move.from][move.to];
+            const std::uint16_t bonus = depth * depth;
+            entry = (entry > UINT16_MAX - bonus) ? UINT16_MAX : entry + bonus;
           }
 
-          std::uint16_t &entry =
-              history[forWhitesInteger][move->from][move->to];
-          const std::uint16_t bonus = depth * depth;
-          entry = (entry > UINT16_MAX - bonus) ? UINT16_MAX : entry + bonus;
+          undoMove(board, undo);
+          popZobristHistory();
+          moveIndex++;
+          break;
         }
-
-        undoMove(board, undo);
-        popZobristHistory();
-        break;
       }
-    }
 
-    undoMove(board, undo);
-    popZobristHistory();
+      undoMove(board, undo);
+      popZobristHistory();
+      moveIndex++;
+    }
   }
 
   if (!hasLegalMoves) {
@@ -335,14 +338,12 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   // This generates only pseudo-legal kills, that's why's the `true` flag there
   MoveGenerator generator(killers, history, board);
   generator.generatePseudoLegal(true, forWhites);
+  generator.preSort(entry != nullptr ? &entry->bestMove : nullptr, ply,
+                    forWhites);
 
-  for (std::size_t moveIndex = 0; moveIndex < generator.pseudoLegal.size();
-       moveIndex++) {
-    const MoveCTX *move =
-        pickMove(generator.pseudoLegal, moveIndex, board, ply,
-                 entry != nullptr ? &entry->bestMove : nullptr);
-    const UndoCTX undo(*move, board);
-    makeMove(board, *move);
+  for (const MoveCTX &move : generator.buckets[BucketEnum::GOOD_CAPTURES]) {
+    const UndoCTX undo(move, board);
+    makeMove(board, move);
     appendZobristHistory();
 
     std::int32_t score = -INF;
@@ -355,7 +356,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
     if (score >= beta) {
       cuts++;
-      storeEntry(board, TT, *move,
+      storeEntry(board, TT, move,
                  {.ply = ply,
                   .depth = 0,
                   .bestScore = score,
