@@ -21,12 +21,14 @@ struct TTEntry {
     LOWERBOUND = 1, // score >= true value (alpha cut-off)
     UPPERBOUND = 2  // score <= true value (beta cut-off)
   } flag = EXACT;
-  MoveCTX bestMove;
+  MoveCTX bestMove{};
 };
 
 class TranspositionTable {
 public:
   TranspositionTable() { table.resize(TT_SIZE); }
+
+  std::uint64_t usedEntries = 0;
 
   [[nodiscard]] auto probe(const std::uint64_t key) const -> const TTEntry * {
     const TTEntry *entry = &table[key & INDEX_MASK];
@@ -40,13 +42,25 @@ public:
 
   void store(const TTEntry &newEntry) {
     TTEntry *entry = &table[newEntry.key & INDEX_MASK];
-    if (entry->key == UINT64_MAX || newEntry.depth >= entry->depth) {
+    if (entry->key == UINT64_MAX) {
+      usedEntries++;
+      *entry = newEntry;
+    }
+    if (newEntry.depth >= entry->depth) {
       *entry = newEntry;
     }
   }
 
+  void clear() {
+    table.clear();
+    table.resize(TT_SIZE);
+    usedEntries = 0;
+  }
+
+  static auto size() -> std::size_t { return TT_SIZE; }
+
 private:
-  static constexpr std::size_t TT_SIZE_MB = 64;
+  static constexpr std::size_t TT_SIZE_MB = 16;
   static constexpr std::size_t MB_TO_BYTE_SCALE_FACTOR = 1048576;
 
   static constexpr std::size_t TT_SIZE_BYTES =
@@ -84,8 +98,7 @@ public:
 
   ChessBoard &board;
   std::uint64_t nodes = 0;
-  std::uint64_t cuts = 0;
-  std::uint64_t TTHits = 0;
+  std::uint64_t seldepth = 0;
 
   [[nodiscard]] auto search(std::uint8_t depth) -> MoveCTX;
 
@@ -107,6 +120,11 @@ public:
     for (auto &depth : killers) {
       depth.fill(MoveCTX());
     }
+
+    TT.clear();
+
+    nodes = 0;
+    seldepth = 0;
   }
 
   void appendZobristHistory() {
@@ -114,16 +132,40 @@ public:
     zobristHistoryIndex = (zobristHistoryIndex + 1) % ZOBRIST_HISTORY_SIZE;
   }
 
+  void clear() {
+    TT.clear();
+
+    startingTime = 0;
+    endTime = UINT64_MAX;
+
+    for (auto &depth : killers) {
+      depth.fill(MoveCTX());
+    }
+
+    zobristHistoryIndex = 0;
+    zobristHistory.fill(~0ULL);
+
+    for (auto &color : history) {
+      for (auto &row : color) {
+        row.fill(0);
+      }
+    }
+
+    nodes = 0;
+    seldepth = 0;
+  }
+
 private:
   TranspositionTable TT;
 
   std::uint8_t zobristHistoryIndex = 0;
   std::uint64_t endTime = UINT64_MAX;
+  std::uint64_t startingTime = UINT64_MAX;
 
-  std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> killers;
-  std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory;
+  std::array<std::array<MoveCTX, 2>, MAX_DEPTH + 1> killers{};
+  std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory{};
   std::array<std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
-      history;
+      history{};
 
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
                              std::uint8_t depth, std::uint8_t ply)
