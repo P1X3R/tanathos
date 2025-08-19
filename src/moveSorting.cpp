@@ -10,10 +10,6 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
-
-using std::greater;
-using std::int16_t;
 
 constexpr std::uint16_t VICTIM_SCALING_FACTOR = 10;
 
@@ -194,12 +190,23 @@ static auto squaresInBetween(std::uint32_t squareA, std::uint32_t squareB)
   Piece attackerType = original;
   std::uint32_t whiteKingSquare = std::countr_zero(board.whites[Piece::KING]);
   std::uint32_t blackKingSquare = std::countr_zero(board.blacks[Piece::KING]);
-  gain[depth] = PIECE_VALUES[captured];
+  gain[depth] = promotion != Piece::NOTHING
+                    ? PIECE_VALUES[promotion] - PIECE_VALUES[original] +
+                          PIECE_VALUES[captured]
+                    : PIECE_VALUES[captured];
 
   do {
     forWhites = !forWhites;
     depth++;
-    gain[depth] = PIECE_VALUES[attackerType] - gain[depth - 1];
+
+    const bool isAttackerPromoting =
+        attackerType == Piece::PAWN &&
+        (to / BOARD_LENGTH) == (forWhites ? 0 : BOARD_LENGTH - 1);
+    gain[depth] = (isAttackerPromoting
+                       ? PIECE_VALUES[Piece::QUEEN] - PIECE_VALUES[attackerType]
+                       : PIECE_VALUES[attackerType]) -
+                  gain[depth - 1];
+
     std::uint64_t &attackerFlat = forWhites ? whitesFlat : blacksFlat;
 
     attackers ^= fromSet;
@@ -249,8 +256,8 @@ static auto squaresInBetween(std::uint32_t squareA, std::uint32_t squareB)
   return gain[0];
 }
 
-void MoveGenerator::sort(const MoveCTX *entryBestMove,
-                            const std::uint8_t ply, const bool forWhites) {
+void MoveGenerator::sort(const MoveCTX *entryBestMove, const std::uint8_t ply,
+                         const bool forWhites) {
   if (pseudoLegal.empty()) {
     generatePseudoLegal(false, forWhites);
   }
@@ -260,14 +267,14 @@ void MoveGenerator::sort(const MoveCTX *entryBestMove,
 
   for (const MoveCTX &move : pseudoLegal) {
     if (entryBestMove != nullptr && move == *entryBestMove) {
-      buckets[BucketEnum::TT][0] = move;
+      buckets[BucketEnum::TT].push_back(move);
       continue;
     }
 
     if (move.captured != Piece::NOTHING) {
       const std::int32_t seeScore = move.see(whitesFlat, board, blacksFlat);
 
-      if (seeScore > 0) {
+      if (seeScore >= 0) {
         buckets[BucketEnum::GOOD_CAPTURES].push_back(move);
       } else {
         buckets[BucketEnum::BAD_CAPTURES].push_back(move);
