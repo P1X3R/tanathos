@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
+#include <ostream>
 
 static constexpr std::int32_t CHECKMATE_SCORE = 50000;
 static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
@@ -115,16 +116,18 @@ static void storeEntry(const ChessBoard &board, TranspositionTable &table,
 }
 
 auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
-  const std::uint64_t startingTime = nowMs();
+  startingTime = nowMs();
   endTime = timeLimitMs + startingTime;
 
   MoveCTX bestMove;
 
-  static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 12;
+  static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 80;
   for (std::uint8_t depth = 1; depth < MAX_SEARCHING_DEPTH; depth++) {
     if (nowMs() >= endTime) {
       break;
     }
+
+    seldepth = 0;
 
     // The search function assigns the best move
     const MoveCTX PVMove = search(depth);
@@ -139,6 +142,8 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
   afterSearch();
 
   endTime = UINT64_MAX;
+  startingTime = 0;
+
   return bestMove;
 }
 
@@ -159,6 +164,7 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
 
     if (!board.isKingInCheck(forWhites)) {
       std::int32_t score = -negamax(-INF, INF, depth - 1, 1);
+      seldepth = std::max(seldepth, static_cast<std::uint64_t>(1));
       if (score > bestScore) {
         bestScore = score;
         bestMove = move;
@@ -169,10 +175,21 @@ auto Searching::search(const std::uint8_t depth) -> MoveCTX {
     popZobristHistory();
   }
 
-#ifndef NDEBUG
-  std::cout << "Score at depth " << static_cast<std::uint32_t>(depth) << ": "
-            << (forWhites ? bestScore : -bestScore) << '\n';
-#endif // !NDEBUG
+  const double elapsedTimeSeconds =
+      static_cast<double>(endTime - startingTime) / 1000;
+  const double nps = static_cast<double>(nodes) / elapsedTimeSeconds;
+
+  static constexpr std::uint16_t HASHFULL_MULTIPLIER = 1000;
+
+  std::cout << "info depth " << static_cast<std::int32_t>(depth) << " seldepth "
+            << seldepth << " score cp " << bestScore << " nodes " << nodes
+            << " nps " << static_cast<std::int32_t>(nps) << " hashfull "
+            << static_cast<std::int32_t>(
+                   static_cast<double>(TT.usedEntries) /
+                   static_cast<double>(TranspositionTable::size()) *
+                   HASHFULL_MULTIPLIER)
+            << " pv " << moveToUCI(bestMove) << '\n';
+  std::flush(std::cout);
 
   return bestMove;
 }
@@ -183,21 +200,21 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   const bool forWhites = board.whiteToMove;
   const auto forWhitesInteger = static_cast<const std::uint8_t>(forWhites);
 
-  if (board.isDraw(zobristHistory)) {
-    return 0;
-  }
   if (depth == 0) {
     return quiescene(alpha, beta, ply);
   }
 
-#ifndef NDEBUG
+  seldepth = std::max(seldepth, static_cast<std::uint64_t>(ply));
   nodes++;
-#endif // !NDEBUG
+
+  if (board.isDraw(zobristHistory)) {
+    return 0;
+  }
   if (nowMs() >= endTime) {
     return forWhites ? board.evaluate() : -board.evaluate();
   }
 
-  const std::uint8_t alphaOriginal = alpha;
+  const std::int32_t alphaOriginal = alpha;
 
   const TTEntry *entry = TT.probe(board.zobrist);
   if (entry != nullptr) {
@@ -205,9 +222,6 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     EntryProbingCTX ctx = {
         .ply = ply, .depth = depth, .alpha = alpha, .beta = beta};
     if (probeTTEntry(entry, ctx, entryScore, board)) {
-#ifndef NDEBUG
-      TTHits++;
-#endif // !NDEBUG
       return entryScore;
     }
   }
@@ -263,14 +277,10 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
           undoMove(board, undo);
           popZobristHistory();
           moveIndex++;
-          return std::max(board.evaluate(), bestScore);
+          return bestScore;
         }
 
         if (alpha >= beta) {
-#ifndef NDEBUG
-          cuts++;
-#endif
-
           if (move.captured == Piece::NOTHING) {
             // Store killer moves
             if (killers[ply][0] != move) {
@@ -287,7 +297,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
           undoMove(board, undo);
           popZobristHistory();
           moveIndex++;
-          break;
+          goto searchEnd;
         }
       }
 
@@ -297,6 +307,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     }
   }
 
+searchEnd:
   if (!hasLegalMoves) {
     return board.isKingInCheck(forWhites)
                ? -(CHECKMATE_SCORE - ply) // Mate in N
@@ -316,15 +327,16 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 [[nodiscard]] auto Searching::quiescene(std::int32_t alpha, std::int32_t beta,
                                         const std::uint8_t ply)
     -> std::int32_t {
-  nodes++;
   const bool forWhites = board.whiteToMove;
   const std::int32_t alphaOriginal = alpha;
+
+  nodes++;
+  seldepth = std::max(seldepth, static_cast<std::uint64_t>(ply));
 
   const std::int32_t staticEvaluation =
       forWhites ? board.evaluate() : -board.evaluate();
   std::int32_t bestValue = staticEvaluation;
   if (bestValue >= beta) {
-    cuts++;
     return bestValue;
   }
   alpha = std::max(bestValue, alpha);
@@ -338,8 +350,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   // This generates only pseudo-legal kills, that's why's the `true` flag there
   MoveGenerator generator(killers, history, board);
   generator.generatePseudoLegal(true, forWhites);
-  generator.sort(entry != nullptr ? &entry->bestMove : nullptr, ply,
-                    forWhites);
+  generator.sort(entry != nullptr ? &entry->bestMove : nullptr, ply, forWhites);
 
   for (const MoveCTX &move : generator.buckets[BucketEnum::GOOD_CAPTURES]) {
     const UndoCTX undo(move, board);
@@ -355,7 +366,6 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     popZobristHistory();
 
     if (score >= beta) {
-      cuts++;
       storeEntry(board, TT, move,
                  {.ply = ply,
                   .depth = 0,
