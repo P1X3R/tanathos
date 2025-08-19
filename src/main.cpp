@@ -3,6 +3,7 @@
 #include "move.h"
 #include "perft.h"
 #include "searching.h"
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <sstream>
@@ -63,6 +64,14 @@ private:
     std::uint8_t depth = 0;
     bool isPerft = false;
 
+    static constexpr std::int32_t MIN_MOVES_TO_GO = 30;
+
+    std::int32_t wtime = 0;
+    std::int32_t btime = 0;
+    std::int32_t winc = 0;
+    std::int32_t binc = 0;
+    std::int32_t movesToGo = MIN_MOVES_TO_GO;
+
     for (std::size_t i = 1; i < tokens.size(); ++i) {
       if (tokens[i] == "perft" && i + 1 < tokens.size()) {
         try {
@@ -90,7 +99,29 @@ private:
           std::cout << "info string Invalid depth\n";
           return;
         }
+      } else if (tokens[i] == "wtime" && i + 1 < tokens.size()) {
+        wtime = std::stoi(tokens[i + 1]);
+      } else if (tokens[i] == "btime" && i + 1 < tokens.size()) {
+        btime = std::stoi(tokens[i + 1]);
+      } else if (tokens[i] == "winc" && i + 1 < tokens.size()) {
+        winc = std::stoi(tokens[i + 1]);
+      } else if (tokens[i] == "binc" && i + 1 < tokens.size()) {
+        binc = std::stoi(tokens[i + 1]);
+      } else if (tokens[i] == "movestogo" && i + 1 < tokens.size()) {
+        movesToGo = std::stoi(tokens[i + 1]);
       }
+    }
+
+    if (timeLimitMs == 0 && (wtime > 0 || btime > 0)) {
+      std::int32_t myTime = board.whiteToMove ? wtime : btime;
+      std::int32_t myInc = board.whiteToMove ? winc : binc;
+      movesToGo = std::max(MIN_MOVES_TO_GO, movesToGo);
+
+      timeLimitMs = myTime / (movesToGo + 2) + myInc * 2 / 3;
+
+      static constexpr std::uint64_t MIN_TIME_LIMIT = 10;
+      timeLimitMs = std::max<uint64_t>(timeLimitMs, MIN_TIME_LIMIT);
+      timeLimitMs = std::min<uint64_t>(timeLimitMs, myTime / 2);
     }
 
     if (depth > 0) {
@@ -101,28 +132,12 @@ private:
       } else {
         MoveCTX bestMove = searcher.search(depth);
         std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
-
-#ifndef NDEBUG
-        std::cout << "nodes " << searcher.nodes << "\n";
-        std::cout << "cut-offs " << searcher.cuts << "\n";
-        std::cout << "TT hits " << searcher.TTHits << "\n";
-        searcher.nodes = 0;
-        searcher.cuts = 0;
-#endif
         searcher.afterSearch();
       }
     } else if (timeLimitMs > 0) {
       // If a time limit is specified, use iterative deepening
       const MoveCTX bestMove = searcher.iterativeDeepening(timeLimitMs);
       std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
-
-#ifndef NDEBUG
-      std::cout << "nodes " << searcher.nodes << "\n";
-      std::cout << "cut-offs " << searcher.cuts << "\n";
-      std::cout << "TT hits " << searcher.TTHits << "\n";
-      searcher.nodes = 0;
-      searcher.cuts = 0;
-#endif
     } else {
       // Default behavior if no specific time or depth is given
       // You might want to implement a default search or handle this case
@@ -151,6 +166,10 @@ public:
         setPosition(tokens);
       } else if (tokens[0] == "go") {
         go(tokens);
+      } else if (tokens[0] == "ucinewgame") {
+        board = ChessBoard(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        searcher.clear();
       } else if (tokens[0] == "quit") {
         break;
       }
