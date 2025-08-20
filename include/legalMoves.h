@@ -73,25 +73,25 @@ public:
       : killers(&_killers), history(&_history), board(_board) {
     pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION);
 
-    buckets[BucketEnum::TT].reserve(1);
-    buckets[BucketEnum::GOOD_CAPTURES].reserve(8);
-    buckets[BucketEnum::KILLERS].reserve(2);
-    buckets[BucketEnum::PROMOTIONS].reserve(24);
-    buckets[BucketEnum::HISTORY_HEURISTICS].reserve(32);
-    buckets[BucketEnum::BAD_CAPTURES].reserve(8);
-    buckets[BucketEnum::QUIET].reserve(48);
+    buckets[BucketEnum::TT].reserve(TT_RESERVE);
+    buckets[BucketEnum::GOOD_CAPTURES].reserve(GOOD_CAPTURES_RESERVE);
+    buckets[BucketEnum::KILLERS].reserve(KILLERS_RESERVE);
+    buckets[BucketEnum::PROMOTIONS].reserve(PROMOTIONS_RESERVE);
+    buckets[BucketEnum::HISTORY_HEURISTICS].reserve(HISTORY_HEURISTICS_RESERVE);
+    buckets[BucketEnum::BAD_CAPTURES].reserve(BAD_CAPTURES_RESERVE);
+    buckets[BucketEnum::QUIET].reserve(QUIET_RESERVE);
   }
 
   explicit MoveGenerator(const ChessBoard &_board) : board(_board) {
     pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION);
 
-    buckets[BucketEnum::TT].reserve(1);
-    buckets[BucketEnum::GOOD_CAPTURES].reserve(8);
-    buckets[BucketEnum::KILLERS].reserve(2);
-    buckets[BucketEnum::PROMOTIONS].reserve(24);
-    buckets[BucketEnum::HISTORY_HEURISTICS].reserve(32);
-    buckets[BucketEnum::BAD_CAPTURES].reserve(8);
-    buckets[BucketEnum::QUIET].reserve(48);
+    buckets[BucketEnum::TT].reserve(TT_RESERVE);
+    buckets[BucketEnum::GOOD_CAPTURES].reserve(GOOD_CAPTURES_RESERVE);
+    buckets[BucketEnum::KILLERS].reserve(KILLERS_RESERVE);
+    buckets[BucketEnum::PROMOTIONS].reserve(PROMOTIONS_RESERVE);
+    buckets[BucketEnum::HISTORY_HEURISTICS].reserve(HISTORY_HEURISTICS_RESERVE);
+    buckets[BucketEnum::BAD_CAPTURES].reserve(BAD_CAPTURES_RESERVE);
+    buckets[BucketEnum::QUIET].reserve(QUIET_RESERVE);
   }
 
   void generatePseudoLegal(bool onlyKills, bool forWhites);
@@ -101,6 +101,14 @@ public:
   void sort(const MoveCTX *entryBestMove, std::uint8_t ply, bool forWhites);
 
 private:
+  static constexpr std::uint8_t TT_RESERVE = 1;
+  static constexpr std::uint8_t GOOD_CAPTURES_RESERVE = 8;
+  static constexpr std::uint8_t KILLERS_RESERVE = 2;
+  static constexpr std::uint8_t PROMOTIONS_RESERVE = 24;
+  static constexpr std::uint8_t HISTORY_HEURISTICS_RESERVE = 32;
+  static constexpr std::uint8_t BAD_CAPTURES_RESERVE = 8;
+  static constexpr std::uint8_t QUIET_RESERVE = 48;
+
   std::uint64_t friendlyFlat = 0;
   std::uint64_t enemyFlat = 0;
 
