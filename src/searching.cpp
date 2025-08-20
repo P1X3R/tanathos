@@ -121,7 +121,7 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
 
   MoveCTX bestMove;
 
-  static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 80;
+  static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 63;
   for (std::uint8_t depth = 1; depth < MAX_SEARCHING_DEPTH; depth++) {
     if (nowMs() >= endTime) {
       break;
