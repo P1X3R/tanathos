@@ -3,46 +3,22 @@
 #include <array>
 #include <cstdint>
 
-constexpr std::array<std::array<std::int32_t, BOARD_AREA>, Piece::KING + 1>
-    PSQT = {
-        // Pawns are better closer to the opponent's side.
-        std::array<std::int32_t, BOARD_AREA>{
-            0,  0,  0,  0,   0,   0,  0,  0,  50, 50, 50,  50, 50, 50,  50, 50,
-            10, 10, 20, 30,  30,  20, 10, 10, 5,  5,  10,  25, 25, 10,  5,  5,
-            0,  0,  0,  20,  20,  0,  0,  0,  5,  -5, -10, 0,  0,  -10, -5, 5,
-            5,  10, 10, -20, -20, 10, 10, 5,  0,  0,  0,   0,  0,  0,   0,  0},
+std::array<std::array<std::int32_t, BOARD_AREA>, Piece::KING + 1> MIDGAME_PSQT =
+    {
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+};
 
-        // Knights are better in the center.
-        {-50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0,   0,   0,
-         0,   -20, -40, -30, 0,   10,  15,  15,  10,  0,   -30, -30, 5,
-         15,  20,  20,  15,  5,   -30, -30, 0,   15,  20,  20,  15,  0,
-         -30, -30, 5,   10,  15,  15,  10,  5,   -30, -40, -20, 0,   5,
-         5,   0,   -20, -40, -50, -40, -30, -30, -30, -30, -40, -50},
-
-        // Bishops are better in the center and on long diagonals.
-        {-20, -10, -10, -10, -10, -10, -10, -20, -10, 0,   0,   0,   0,
-         0,   0,   -10, -10, 0,   5,   10,  10,  5,   0,   -10, -10, 5,
-         5,   10,  10,  5,   5,   -10, -10, 0,   10,  10,  10,  10,  0,
-         -10, -10, 10,  10,  10,  10,  10,  10,  -10, -10, 5,   0,   0,
-         0,   0,   5,   -10, -20, -10, -10, -10, -10, -10, -10, -20},
-
-        // Rooks are better on open files.
-        {0,  0, 0, 0, 0, 0, 0, 0,  5,  10, 10, 10, 10, 10, 10, 5,
-         -5, 0, 0, 0, 0, 0, 0, -5, -5, 0,  0,  0,  0,  0,  0,  -5,
-         -5, 0, 0, 0, 0, 0, 0, -5, -5, 0,  0,  0,  0,  0,  0,  -5,
-         -5, 0, 0, 0, 0, 0, 0, -5, 0,  0,  0,  5,  5,  0,  0,  0},
-
-        // Queens are similar to bishops and rooks but with less drastic values.
-        {-20, -10, -10, -5,  -5,  -10, -10, -20, -10, 0,   0,   0,  0,
-         0,   0,   -10, -10, 0,   5,   5,   5,   5,   0,   -10, -5, 0,
-         5,   5,   5,   5,   0,   -5,  0,   0,   5,   5,   5,   5,  0,
-         -5,  -10, 5,   5,   5,   5,   5,   0,   -10, -10, 0,   5,  0,
-         0,   0,   0,   -10, -20, -10, -10, -5,  -5,  -10, -10, -20},
-
-        // Kings are safer in the corners in the opening/middlegame.
-        {-30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50,
-         -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40,
-         -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30,
-         -20, -10, -20, -20, -20, -20, -20, -20, -10, 20,  20,  0,   0,
-         0,   0,   20,  20,  20,  30,  10,  0,   0,   10,  30,  20},
+std::array<std::array<std::int32_t, BOARD_AREA>, Piece::KING + 1> ENDGAME_PSQT =
+    {
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
+        std::array<std::int32_t, BOARD_AREA>{},
 };
