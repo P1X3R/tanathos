@@ -282,6 +282,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   generator.appendCastling(board, forWhites);
   generator.sort(entryBestMove, ply, forWhites);
 
+  const std::int32_t mateScore = CHECKMATE_SCORE - ply; // Mate in N
+
   bool hasLegalMoves = false;
   std::uint8_t moveIndex = 0;
   for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
@@ -319,10 +321,18 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         }
         alpha = std::max(score, alpha);
 
+        if (mateScore < beta) {
+          beta = mateScore;
+          if (alpha >= mateScore) {
+            undoMove(board, undo);
+            popZobristHistory();
+            return mateScore;
+          }
+        }
+
         if (nowMs() >= endTime) {
           undoMove(board, undo);
           popZobristHistory();
-          moveIndex++;
           return bestScore;
         }
 
@@ -342,7 +352,6 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
           undoMove(board, undo);
           popZobristHistory();
-          moveIndex++;
           goto searchEnd;
         }
       }
@@ -355,9 +364,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
 searchEnd:
   if (!hasLegalMoves) {
-    return board.isKingInCheck(forWhites)
-               ? -(CHECKMATE_SCORE - ply) // Mate in N
-               : 0;                       // Stalemate
+    // If king is in check it's checkmate, if no it's stalemate
+    return board.isKingInCheck(forWhites) ? -mateScore : 0;
   }
 
   storeEntry(board, TT, bestMove,
