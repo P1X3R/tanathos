@@ -60,7 +60,7 @@ public:
   static auto size() -> std::size_t { return TT_SIZE; }
 
 private:
-  static constexpr std::size_t TT_SIZE_MB = 16;
+  static constexpr std::size_t TT_SIZE_MB = 64;
   static constexpr std::size_t MB_TO_BYTE_SCALE_FACTOR = 1048576;
 
   static constexpr std::size_t TT_SIZE_BYTES =
