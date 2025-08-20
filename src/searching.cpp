@@ -326,7 +326,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
           if (alpha >= mateScore) {
             undoMove(board, undo);
             popZobristHistory();
-            return mateScore;
+            return -mateScore;
           }
         }
 
