@@ -130,10 +130,27 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
     seldepth = 0;
 
     // The search function assigns the best move
-    const MoveCTX PVMove = search(depth);
+    const auto [PVMove, bestScore] = search(depth);
 
     if (nowMs() < endTime) {
       bestMove = PVMove;
+
+      const double elapsedTimeSeconds =
+          static_cast<double>(nowMs() - startingTime) / 1000;
+      const double nps = static_cast<double>(nodes) / elapsedTimeSeconds;
+
+      static constexpr std::uint16_t HASHFULL_MULTIPLIER = 1000;
+
+      std::cout << "info depth " << static_cast<std::uint64_t>(depth)
+                << " seldepth " << seldepth << " score cp " << bestScore
+                << " nodes " << nodes << " nps "
+                << static_cast<std::uint64_t>(nps) << " hashfull "
+                << static_cast<std::uint64_t>(
+                       static_cast<double>(TT.usedEntries) /
+                       static_cast<double>(TranspositionTable::size()) *
+                       HASHFULL_MULTIPLIER)
+                << " pv " << moveToUCI(bestMove) << '\n';
+      std::flush(std::cout);
     } else {
       break;
     }
@@ -147,51 +164,80 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
   return bestMove;
 }
 
-auto Searching::search(const std::uint8_t depth) -> MoveCTX {
+auto Searching::search(const std::uint8_t depth)
+    -> std::pair<MoveCTX, std::int32_t> {
   MoveCTX bestMove;
   std::int32_t bestScore = -INF;
 
-  const bool forWhites = board.whiteToMove;
+  static constexpr std::uint8_t BASE_DELTA = 30;
+  std::uint8_t delta = BASE_DELTA;
+  std::int32_t alpha;
+  std::int32_t beta;
 
-  MoveGenerator generator(killers, history, board);
-  generator.generatePseudoLegal(false, forWhites);
-  generator.appendCastling(board, forWhites);
-
-  for (const MoveCTX &move : generator.pseudoLegal) {
-    const UndoCTX undo(move, board);
-    makeMove(board, move);
-    appendZobristHistory();
-
-    if (!board.isKingInCheck(forWhites)) {
-      std::int32_t score = -negamax(-INF, INF, depth - 1, 1);
-      seldepth = std::max(seldepth, static_cast<std::uint64_t>(1));
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = move;
-      }
-    }
-
-    undoMove(board, undo);
-    popZobristHistory();
+  static constexpr std::uint8_t MIN_DEPTH_FOR_ASPIRATION = 4;
+  if (depth > MIN_DEPTH_FOR_ASPIRATION &&
+      std::abs(lastScore) < CHECKMATE_THRESHOLD) {
+    alpha = lastScore - delta;
+    beta = lastScore + delta;
+  } else {
+    alpha = -INF;
+    beta = INF;
   }
 
-  const double elapsedTimeSeconds =
-      static_cast<double>(endTime - startingTime) / 1000;
-  const double nps = static_cast<double>(nodes) / elapsedTimeSeconds;
+  const TTEntry *entry = TT.probe(board.zobrist);
+  const MoveCTX *entryBestMove =
+      entry != nullptr && entry->depth != 0 ? &entry->bestMove : nullptr;
 
-  static constexpr std::uint16_t HASHFULL_MULTIPLIER = 1000;
+  if (entry != nullptr && entry->depth >= depth - 2) {
+    lastScore = entry->score;
+  }
 
-  std::cout << "info depth " << static_cast<std::int32_t>(depth) << " seldepth "
-            << seldepth << " score cp " << bestScore << " nodes " << nodes
-            << " nps " << static_cast<std::int32_t>(nps) << " hashfull "
-            << static_cast<std::int32_t>(
-                   static_cast<double>(TT.usedEntries) /
-                   static_cast<double>(TranspositionTable::size()) *
-                   HASHFULL_MULTIPLIER)
-            << " pv " << moveToUCI(bestMove) << '\n';
-  std::flush(std::cout);
+  bool foundMove = false;
 
-  return bestMove;
+  MoveGenerator generator(killers, history, board);
+  generator.generatePseudoLegal(false, board.whiteToMove);
+  generator.appendCastling(board, board.whiteToMove);
+  generator.sort(entryBestMove, 0, board.whiteToMove);
+
+  static auto searchMoves = [&](const std::int32_t currentAlpha,
+                                const std::int32_t currentBeta) {
+    bestScore = -INF;
+    for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
+         ++bucket) {
+      for (const MoveCTX &move : generator.buckets[bucket]) {
+        const UndoCTX undo(move, board);
+        makeMove(board, move);
+        appendZobristHistory();
+
+        if (!board.isKingInCheck(board.whiteToMove)) {
+          foundMove = true;
+          const std::int32_t score =
+              -negamax(-currentBeta, -currentAlpha, depth - 1, 1);
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+          }
+        }
+        undoMove(board, undo);
+        popZobristHistory();
+      }
+    }
+  };
+
+  searchMoves(alpha, beta);
+
+  if (!foundMove) {
+    return {MoveCTX(),
+            board.isKingInCheck(board.whiteToMove) ? -CHECKMATE_SCORE : 0};
+  }
+
+  if (bestScore <= alpha || bestScore >= beta) {
+    searchMoves(INF, -INF);
+  }
+
+  lastScore = bestScore;
+  return {bestMove, bestScore};
 }
 
 auto Searching::negamax(std::int32_t alpha, std::int32_t beta,

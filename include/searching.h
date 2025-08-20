@@ -100,7 +100,8 @@ public:
   std::uint64_t nodes = 0;
   std::uint64_t seldepth = 0;
 
-  [[nodiscard]] auto search(std::uint8_t depth) -> MoveCTX;
+  [[nodiscard]] auto search(std::uint8_t depth)
+      -> std::pair<MoveCTX, std::int32_t>;
 
   auto iterativeDeepening(std::uint64_t timeLimitMs) -> MoveCTX;
 
@@ -166,6 +167,8 @@ private:
   std::array<std::uint64_t, ZOBRIST_HISTORY_SIZE> zobristHistory{};
   std::array<std::array<std::array<std::uint16_t, BOARD_AREA>, BOARD_AREA>, 2>
       history{};
+
+  std::int32_t lastScore = 0;
 
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
                              std::uint8_t depth, std::uint8_t ply)
