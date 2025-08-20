@@ -203,7 +203,7 @@ static auto squaresInBetween(std::uint32_t squareA, std::uint32_t squareB)
         attackerType == Piece::PAWN &&
         (to / BOARD_LENGTH) == (forWhites ? 0 : BOARD_LENGTH - 1);
     gain[depth] = (isAttackerPromoting
-                       ? PIECE_VALUES[Piece::QUEEN] - PIECE_VALUES[attackerType]
+                       ? PIECE_VALUES[Piece::QUEEN] - PIECE_VALUES[Piece::PAWN]
                        : PIECE_VALUES[attackerType]) -
                   gain[depth - 1];
 
