@@ -130,7 +130,7 @@ private:
 
         std::cout << "Nodes searched: " << nodes << '\n';
       } else {
-        MoveCTX bestMove = searcher.search(depth);
+        auto [bestMove, _bestScore] = searcher.search(depth);
         std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
         searcher.afterSearch();
       }
