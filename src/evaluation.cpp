@@ -1,5 +1,7 @@
+#include "bitboard.h"
 #include "board.h"
 #include "psqt.h"
+#include "searching.h"
 #include <bit>
 #include <cstdint>
 
@@ -32,18 +34,19 @@ auto ChessBoard::evaluate() const -> std::int32_t {
     std::uint64_t bitboard = whites[type];
 
     while (bitboard != 0) {
-      std::int32_t square = std::countr_zero(bitboard);
-      midgame += MIDGAME_PSQT[type][square];
-      endgame += ENDGAME_PSQT[type][square];
-      bitboard &= bitboard - 1; // pop lsb
+      std::int32_t square =
+          std::countr_zero(bitboard) ^ (BOARD_AREA - BOARD_LENGTH);
+      midgame += MIDGAME_PSQT[type][square] + PIECE_VALUES[type];
+      endgame += ENDGAME_PSQT[type][square] + PIECE_VALUES[type];
+      bitboard &= bitboard - 1;
     }
 
     bitboard = blacks[type];
     while (bitboard != 0) {
       std::int32_t square = std::countr_zero(bitboard);
-      midgame -= MIDGAME_PSQT[type][square];
-      endgame -= ENDGAME_PSQT[type][square];
-      bitboard &= bitboard - 1; // pop lsb
+      midgame -= MIDGAME_PSQT[type][square] + PIECE_VALUES[type];
+      endgame -= ENDGAME_PSQT[type][square] + PIECE_VALUES[type];
+      bitboard &= bitboard - 1;
     }
   }
 
