@@ -168,6 +168,7 @@ auto Searching::search(const std::uint8_t depth)
     -> std::pair<MoveCTX, std::int32_t> {
   MoveCTX bestMove;
   std::int32_t bestScore = -INF;
+  const bool forWhites = board.whiteToMove;
 
   static constexpr std::uint8_t BASE_DELTA = 30;
   std::uint8_t delta = BASE_DELTA;
@@ -195,9 +196,9 @@ auto Searching::search(const std::uint8_t depth)
   bool foundMove = false;
 
   MoveGenerator generator(killers, history, board);
-  generator.generatePseudoLegal(false, board.whiteToMove);
-  generator.appendCastling(board, board.whiteToMove);
-  generator.sort(entryBestMove, 0, board.whiteToMove);
+  generator.generatePseudoLegal(false, forWhites);
+  generator.appendCastling(board, forWhites);
+  generator.sort(entryBestMove, 0, forWhites);
 
   static auto searchMoves = [&](const std::int32_t currentAlpha,
                                 const std::int32_t currentBeta) {
@@ -209,7 +210,7 @@ auto Searching::search(const std::uint8_t depth)
         makeMove(board, move);
         appendZobristHistory();
 
-        if (!board.isKingInCheck(board.whiteToMove)) {
+        if (!board.isKingInCheck(forWhites)) {
           foundMove = true;
           const std::int32_t score =
               -negamax(-currentBeta, -currentAlpha, depth - 1, 1);
