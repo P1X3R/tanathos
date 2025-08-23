@@ -234,7 +234,7 @@ auto Searching::search(const std::uint8_t depth)
   }
 
   if (bestScore <= alpha || bestScore >= beta) {
-    searchMoves(INF, -INF);
+    searchMoves(-INF, INF);
   }
 
   lastScore = bestScore;
