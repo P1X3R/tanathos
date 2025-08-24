@@ -1,4 +1,5 @@
 #include "bitboard.h"
+#include "bitboard.h"
 #include "board.h"
 #include "psqt.h"
 #include "searching.h"
@@ -11,28 +12,25 @@ auto ChessBoard::evaluate() const -> std::int32_t {
   static constexpr std::uint8_t TOTAL_PHASE =
       (PHASE_VALUES[Piece::KNIGHT] * 2) + (PHASE_VALUES[Piece::BISHOP] * 2) +
       (PHASE_VALUES[Piece::ROOK] * 2) + PHASE_VALUES[Piece::QUEEN];
+  static constexpr std::int32_t PHASE_SCALING_FACTOR = 256;
 
   std::int32_t phase = TOTAL_PHASE;
 
-  static auto incrementCount =
-      [&](const std::array<std::uint64_t, Piece::KING + 1> &color) {
-        for (std::uint32_t type = Piece::PAWN; type <= Piece::QUEEN; type++) {
-          phase -= std::popcount(color[type]) * PHASE_VALUES[type];
-        }
-      };
+  // Subtract phase values for all pieces on board
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::QUEEN; ++type) {
+    phase -= std::popcount(whites[type]) * PHASE_VALUES[type];
+    phase -= std::popcount(blacks[type]) * PHASE_VALUES[type];
+  }
 
-  incrementCount(whites);
-  incrementCount(blacks);
-
-  static constexpr std::int32_t PHASE_SCALING_FACTOR = 256;
+  // Scale phase to [0..PHASE_SCALING_FACTOR]
   phase = (phase * PHASE_SCALING_FACTOR + (TOTAL_PHASE / 2)) / TOTAL_PHASE;
 
   std::int32_t midgame = 0;
   std::int32_t endgame = 0;
 
-  for (std::uint32_t type = Piece::PAWN; type <= Piece::QUEEN; type++) {
+  // Evaluate white pieces
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::QUEEN; ++type) {
     std::uint64_t bitboard = whites[type];
-
     while (bitboard != 0) {
       std::int32_t square =
           std::countr_zero(bitboard) ^ (BOARD_AREA - BOARD_LENGTH);
@@ -40,8 +38,11 @@ auto ChessBoard::evaluate() const -> std::int32_t {
       endgame += ENDGAME_PSQT[type][square] + PIECE_VALUES[type];
       bitboard &= bitboard - 1;
     }
+  }
 
-    bitboard = blacks[type];
+  // Evaluate black pieces
+  for (std::uint32_t type = Piece::PAWN; type <= Piece::QUEEN; ++type) {
+    std::uint64_t bitboard = blacks[type];
     while (bitboard != 0) {
       std::int32_t square = std::countr_zero(bitboard);
       midgame -= MIDGAME_PSQT[type][square] + PIECE_VALUES[type];
