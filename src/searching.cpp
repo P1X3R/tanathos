@@ -400,41 +400,50 @@ searchEnd:
     return bestValue;
   }
 
+  const bool isInCheck = board.isKingInCheck(forWhites);
+
   const TTEntry *entry = TT.probe(board.zobrist);
 
   // This generates only pseudo-legal kills, that's why's the `true` flag there
   MoveGenerator generator(killers, history, board);
-  generator.generatePseudoLegal(true, forWhites);
+  generator.generatePseudoLegal(!isInCheck, forWhites);
   generator.sort(entry != nullptr ? &entry->bestMove : nullptr, ply, forWhites);
 
-  for (const MoveCTX &move : generator.buckets[BucketEnum::GOOD_CAPTURES]) {
-    const UndoCTX undo(move, board);
-    makeMove(board, move);
-    appendZobristHistory();
-
-    std::int32_t score = -INF;
-    if (!board.isKingInCheck(forWhites)) {
-      score = -quiescene(-beta, -alpha, ply + 1);
+  for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
+       ++bucket) {
+    if (!isInCheck && bucket != GOOD_CAPTURES) {
+      continue;
     }
 
-    undoMove(board, undo);
-    popZobristHistory();
+    for (const MoveCTX &move : generator.buckets[bucket]) {
+      const UndoCTX undo(move, board);
+      makeMove(board, move);
+      appendZobristHistory();
 
-    if (score >= beta) {
-      storeEntry(board, TT, move,
-                 {.ply = ply,
-                  .depth = 0,
-                  .bestScore = score,
-                  .alphaOriginal = alphaOriginal,
-                  .beta = beta});
-      return score;
-    }
+      std::int32_t score = -INF;
+      if (!board.isKingInCheck(forWhites)) {
+        score = -quiescene(-beta, -alpha, ply + 1);
+      }
 
-    bestValue = std::max(score, bestValue);
-    alpha = std::max(score, alpha);
+      undoMove(board, undo);
+      popZobristHistory();
 
-    if (nowMs() >= endTime) {
-      return bestValue;
+      if (score >= beta) {
+        storeEntry(board, TT, move,
+                   {.ply = ply,
+                    .depth = 0,
+                    .bestScore = score,
+                    .alphaOriginal = alphaOriginal,
+                    .beta = beta});
+        return score;
+      }
+
+      bestValue = std::max(score, bestValue);
+      alpha = std::max(score, alpha);
+
+      if (nowMs() >= endTime) {
+        return bestValue;
+      }
     }
   }
 
