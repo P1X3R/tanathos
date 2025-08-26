@@ -200,8 +200,8 @@ auto Searching::search(const std::uint8_t depth)
   generator.appendCastling(board, forWhites);
   generator.sort(entryBestMove, 0, forWhites);
 
-  static auto searchMoves = [&](const std::int32_t currentAlpha,
-                                const std::int32_t currentBeta) {
+  auto searchMoves = [&](const std::int32_t currentAlpha,
+                         const std::int32_t currentBeta) {
     bestScore = -INF;
     for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
          ++bucket) {

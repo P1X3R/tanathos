@@ -304,8 +304,7 @@ void MoveGenerator::sort(const MoveCTX *entryBestMove, const std::uint8_t ply,
     buckets[BucketEnum::QUIET].push_back(move);
   }
 
-  static auto compareCaptures = [](const MoveCTX &first,
-                                   const MoveCTX &second) {
+  auto compareCaptures = [](const MoveCTX &first, const MoveCTX &second) {
     return MVV_LVA[first.original][first.captured] >
            MVV_LVA[second.original][second.captured];
   };
