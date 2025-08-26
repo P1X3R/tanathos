@@ -107,9 +107,9 @@ static void storeEntry(const ChessBoard &board, TranspositionTable &table,
   }
 
   if (newEntry.score > CHECKMATE_THRESHOLD) {
-    newEntry.score -= ctx.ply;
-  } else if (newEntry.score < -CHECKMATE_THRESHOLD) {
     newEntry.score += ctx.ply;
+  } else if (newEntry.score < -CHECKMATE_THRESHOLD) {
+    newEntry.score -= ctx.ply;
   }
 
   table.store(newEntry);
