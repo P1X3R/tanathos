@@ -273,6 +273,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     }
   }
 
+  const bool inCheck = board.isKingInCheck(forWhites);
+
   std::int32_t bestScore = -INF;
   const MoveCTX *entryBestMove =
       entry != nullptr && entry->depth != 0 ? &entry->bestMove : nullptr;
@@ -303,9 +305,10 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         const bool isGoodMove =
             history[forWhitesInteger][move.from][move.to] > HISTORY_GOOD;
 
-        // Not reduce if bucket is: TT, good capture, killer or promotion
-        if (bucket <= BucketEnum::PROMOTIONS || moveIndex == 0 || isGoodMove ||
-            depth < 2) {
+        // Not reduce if bucket is: TT, checks, good capture, killer or
+        // promotion
+        if (bucket <= BucketEnum::PROMOTIONS || inCheck || moveIndex == 0 ||
+            isGoodMove || depth < 2) {
           score = -negamax(-beta, -alpha, depth - 1, ply + 1);
         } else {
           score = -negamax(
@@ -366,7 +369,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 searchEnd:
   if (!hasLegalMoves) {
     // If king is in check it's checkmate, if no it's stalemate
-    return board.isKingInCheck(forWhites) ? -mateScore : 0;
+    return inCheck ? -mateScore : 0;
   }
 
   storeEntry(board, TT, bestMove,

@@ -35,9 +35,10 @@ auto moveToUCI(const MoveCTX &move) -> std::string;
 
 constexpr std::uint32_t MAX_MOVES_IN_A_POSITION = 218;
 
-static constexpr std::uint8_t BUCKETS_LEN = 7;
+static constexpr std::uint8_t BUCKETS_LEN = 8;
 enum BucketEnum : std::uint8_t {
   TT = 0,
+  CHECKS,
   GOOD_CAPTURES,
   KILLERS,
   PROMOTIONS,
@@ -74,6 +75,7 @@ public:
     pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION);
 
     buckets[BucketEnum::TT].reserve(TT_RESERVE);
+    buckets[BucketEnum::CHECKS].reserve(CHECKS_RESERVE);
     buckets[BucketEnum::GOOD_CAPTURES].reserve(GOOD_CAPTURES_RESERVE);
     buckets[BucketEnum::KILLERS].reserve(KILLERS_RESERVE);
     buckets[BucketEnum::PROMOTIONS].reserve(PROMOTIONS_RESERVE);
@@ -86,6 +88,7 @@ public:
     pseudoLegal.reserve(MAX_MOVES_IN_A_POSITION);
 
     buckets[BucketEnum::TT].reserve(TT_RESERVE);
+    buckets[BucketEnum::CHECKS].reserve(CHECKS_RESERVE);
     buckets[BucketEnum::GOOD_CAPTURES].reserve(GOOD_CAPTURES_RESERVE);
     buckets[BucketEnum::KILLERS].reserve(KILLERS_RESERVE);
     buckets[BucketEnum::PROMOTIONS].reserve(PROMOTIONS_RESERVE);
@@ -102,6 +105,7 @@ public:
 
 private:
   static constexpr std::uint8_t TT_RESERVE = 1;
+  static constexpr std::uint8_t CHECKS_RESERVE = 16;
   static constexpr std::uint8_t GOOD_CAPTURES_RESERVE = 8;
   static constexpr std::uint8_t KILLERS_RESERVE = 2;
   static constexpr std::uint8_t PROMOTIONS_RESERVE = 24;

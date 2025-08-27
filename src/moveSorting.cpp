@@ -264,10 +264,19 @@ void MoveGenerator::sort(const MoveCTX *entryBestMove, const std::uint8_t ply,
 
   const std::uint64_t whitesFlat = forWhites ? friendlyFlat : enemyFlat;
   const std::uint64_t blacksFlat = forWhites ? enemyFlat : friendlyFlat;
+  const std::uint64_t enemyKing =
+      forWhites ? board.blacks[Piece::KING] : board.whites[Piece::KING];
 
   for (const MoveCTX &move : pseudoLegal) {
     if (entryBestMove != nullptr && move == *entryBestMove) {
       buckets[BucketEnum::TT].push_back(move);
+      continue;
+    }
+
+    if ((getKills(move.original, static_cast<std::int8_t>(move.to),
+                  friendlyFlat, forWhites, enemyFlat) &
+         enemyKing) != 0) {
+      buckets[BucketEnum::CHECKS].push_back(move);
       continue;
     }
 
