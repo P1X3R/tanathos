@@ -273,7 +273,18 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     }
   }
 
+  const auto &enemyColor = forWhites ? board.blacks : board.whites;
+
+  Piece opponentBestPiece = Piece::QUEEN;
+  for (; opponentBestPiece >= Piece::PAWN && enemyColor[opponentBestPiece] == 0;
+       opponentBestPiece = static_cast<Piece>(
+           static_cast<std::uint8_t>(opponentBestPiece) - 1)) {
+  }
   const bool inCheck = board.isKingInCheck(forWhites);
+  const bool canFutilityPrune = depth <= 3 && !inCheck;
+  constexpr std::int32_t POSITIONAL_MARGIN = 100;
+  const std::int32_t futilityMargin =
+      (PIECE_VALUES[opponentBestPiece] / 2) + POSITIONAL_MARGIN + (depth * 60);
 
   std::int32_t bestScore = -INF;
   const MoveCTX *entryBestMove =
@@ -298,6 +309,17 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
       if (!board.isKingInCheck(forWhites)) {
         hasLegalMoves = true;
+
+        const bool isQuiet = bucket != BucketEnum::TT &&
+                             bucket != GOOD_CAPTURES && bucket != CHECKS;
+        const std::int32_t afterMoveEvaluation =
+            forWhites ? board.evaluate() : -board.evaluate();
+        if (canFutilityPrune && afterMoveEvaluation + futilityMargin < alpha &&
+            isQuiet) {
+          undoMove(board, undo);
+          popZobristHistory();
+          continue;
+        }
 
         std::int32_t score;
 
