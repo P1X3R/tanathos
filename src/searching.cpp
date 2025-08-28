@@ -11,9 +11,6 @@
 #include <iostream>
 #include <ostream>
 
-static constexpr std::int32_t CHECKMATE_SCORE = 50000;
-static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
-
 static constexpr std::uint8_t REDUCTION_MAX_DEPTH = 13;
 static constexpr std::uint8_t REDUCTION_MAX_MOVE_INDEX = 218;
 static const std::array<std::array<std::uint8_t, REDUCTION_MAX_MOVE_INDEX>,
@@ -121,7 +118,6 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
 
   MoveCTX bestMove;
 
-  static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 63;
   for (std::uint8_t depth = 1; depth < MAX_SEARCHING_DEPTH; depth++) {
     if (nowMs() >= endTime) {
       break;

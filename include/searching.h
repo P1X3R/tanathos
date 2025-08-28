@@ -10,7 +10,10 @@
 #include <cstring>
 #include <vector>
 
-static constexpr std::int32_t INF = INT32_MAX;
+static constexpr std::int32_t CHECKMATE_SCORE = 50000;
+static constexpr std::int32_t CHECKMATE_THRESHOLD = CHECKMATE_SCORE - 1000;
+static constexpr std::int32_t INF = CHECKMATE_SCORE + 1000;
+static constexpr std::uint8_t MAX_SEARCHING_DEPTH = 63;
 
 struct TTEntry {
   std::uint64_t key = UINT64_MAX; // Zobrist
