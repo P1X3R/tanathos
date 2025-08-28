@@ -59,7 +59,8 @@ static auto probeTTEntry(const TTEntry *entry, EntryProbingCTX &ctx,
   std::int32_t entryScore = entry->score;
 
 #ifndef NDEBUG
-  assert(std::abs(entryScore) <= CHECKMATE_SCORE);
+  assert(std::abs(entryScore) <= CHECKMATE_SCORE + MAX_SEARCHING_DEPTH &&
+         "Storing score out of reasonable bounds");
 #endif
 
   if (entryScore > CHECKMATE_THRESHOLD) {
@@ -89,6 +90,10 @@ static auto probeTTEntry(const TTEntry *entry, EntryProbingCTX &ctx,
 
 static void storeEntry(const ChessBoard &board, TranspositionTable &table,
                        const MoveCTX &bestMove, const EntryStoringCTX &ctx) {
+  if (bestMove == MoveCTX() || std::abs(ctx.bestScore) >= INF) {
+    return;
+  }
+
   TTEntry newEntry;
   newEntry.key = board.zobrist;
   newEntry.bestMove = bestMove;
