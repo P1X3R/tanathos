@@ -360,7 +360,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         if (nowMs() >= endTime) {
           undoMove(board, undo);
           popZobristHistory();
-          return bestScore;
+          return 0;
         }
 
         if (alpha >= beta) {
