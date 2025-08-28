@@ -258,8 +258,10 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   if (board.isDraw(zobristHistory)) {
     return 0;
   }
+  const std::int32_t staticEvaluation =
+      forWhites ? board.evaluate() : -board.evaluate();
   if (nowMs() >= endTime) {
-    return forWhites ? board.evaluate() : -board.evaluate();
+    return staticEvaluation;
   }
 
   const std::int32_t alphaOriginal = alpha;
@@ -282,10 +284,8 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
            static_cast<std::uint8_t>(opponentBestPiece) - 1)) {
   }
   const bool inCheck = board.isKingInCheck(forWhites);
-  const bool canFutilityPrune = depth <= 3 && !inCheck;
-  constexpr std::int32_t POSITIONAL_MARGIN = 100;
-  const std::int32_t futilityMargin =
-      (PIECE_VALUES[opponentBestPiece] / 2) + POSITIONAL_MARGIN + (depth * 60);
+  const bool canFutilityPrune = depth == 1 && !inCheck;
+  constexpr std::int32_t FUTILITY_MARGIN = 200;
 
   std::int32_t bestScore = -INF;
   const MoveCTX *entryBestMove =
@@ -311,11 +311,9 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
       if (!board.isKingInCheck(forWhites)) {
         hasLegalMoves = true;
 
-        const bool isQuiet = bucket != BucketEnum::TT &&
-                             bucket != GOOD_CAPTURES && bucket != CHECKS;
-        const std::int32_t afterMoveEvaluation =
-            forWhites ? board.evaluate() : -board.evaluate();
-        if (canFutilityPrune && afterMoveEvaluation + futilityMargin < alpha &&
+        const bool isQuiet = bucket == QUIET || bucket == KILLERS ||
+                             bucket == HISTORY_HEURISTICS;
+        if (canFutilityPrune && staticEvaluation + FUTILITY_MARGIN < alpha &&
             isQuiet) {
           undoMove(board, undo);
           popZobristHistory();
