@@ -362,7 +362,7 @@ TEST_F(MakeMoveTest, ZobristPropertyBasedTest) {
   std::uniform_int_distribution<> dis(0, RANDOM_TESTS);
 
   // Test 1000 random positions
-  for (int test = 0; test < RANDOM_TESTS; test++) {
+  for (std::size_t test = 0; test < RANDOM_TESTS; test++) {
     // Create random position
     ChessBoard board;
     board.whiteToMove = (dis(gen) % 2) != 0;
