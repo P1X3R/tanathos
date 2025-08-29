@@ -80,6 +80,11 @@ private:
 constexpr std::array<std::int32_t, Piece::NOTHING + 1> PIECE_VALUES = {
     100, 320, 330, 500, 900, 20000, 0};
 
+enum class NodeType : std::uint8_t {
+  PV,
+  NonPV,
+};
+
 class Searching {
 public:
   explicit Searching(ChessBoard &_board) : board(_board) {
@@ -173,6 +178,7 @@ private:
 
   std::int32_t lastScore = 0;
 
+  template <NodeType nodeType>
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
                              std::uint8_t depth, std::uint8_t ply)
       -> std::int32_t;

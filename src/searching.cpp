@@ -214,7 +214,7 @@ auto Searching::search(const std::uint8_t depth)
         if (!board.isKingInCheck(forWhites)) {
           foundMove = true;
           const std::int32_t score =
-              -negamax(-currentBeta, -currentAlpha, depth - 1, 1);
+              -negamax<NodeType::PV>(-currentBeta, -currentAlpha, depth - 1, 1);
 
           if (score > bestScore) {
             bestScore = score;
@@ -242,6 +242,7 @@ auto Searching::search(const std::uint8_t depth)
   return {bestMove, bestScore};
 }
 
+template <NodeType nodeType>
 auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
                         const std::uint8_t depth, const std::uint8_t ply)
     -> std::int32_t {
@@ -276,15 +277,9 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
     }
   }
 
-  const auto &enemyColor = forWhites ? board.blacks : board.whites;
-
-  Piece opponentBestPiece = Piece::QUEEN;
-  for (; opponentBestPiece >= Piece::PAWN && enemyColor[opponentBestPiece] == 0;
-       opponentBestPiece = static_cast<Piece>(
-           static_cast<std::uint8_t>(opponentBestPiece) - 1)) {
-  }
   const bool inCheck = board.isKingInCheck(forWhites);
-  const bool canFutilityPrune = depth == 1 && !inCheck;
+  const bool canFutilityPrune =
+      depth == 1 && !inCheck && nodeType == NodeType::NonPV;
   constexpr std::int32_t FUTILITY_MARGIN = 200;
 
   std::int32_t bestScore = -INF;
@@ -330,13 +325,13 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         // promotion
         if (bucket <= BucketEnum::PROMOTIONS || inCheck || moveIndex == 0 ||
             isGoodMove || depth < 2) {
-          score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+          score = -negamax<nodeType>(-beta, -alpha, depth - 1, ply + 1);
         } else {
-          score = -negamax(
+          score = -negamax<NodeType::NonPV>(
               -alpha - 1, -alpha,
               std::max(1, depth - REDUCTION_TABLE[depth][moveIndex]), ply + 1);
           if (score > alpha && score < beta) {
-            score = -negamax(-beta, -alpha, depth - 1, ply + 1);
+            score = -negamax<NodeType::PV>(-beta, -alpha, depth - 1, ply + 1);
           }
         }
 
@@ -402,6 +397,15 @@ searchEnd:
 
   return bestScore;
 }
+
+template auto
+Searching::negamax<NodeType::NonPV>(std::int32_t alpha, std::int32_t beta,
+                                    std::uint8_t depth, std::uint8_t ply)
+    -> std::int32_t;
+template auto
+Searching::negamax<NodeType::PV>(std::int32_t alpha, std::int32_t beta,
+                                 std::uint8_t depth, std::uint8_t ply)
+    -> std::int32_t;
 
 [[nodiscard]] auto Searching::quiescene(std::int32_t alpha, std::int32_t beta,
                                         const std::uint8_t ply)
