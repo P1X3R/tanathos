@@ -341,10 +341,11 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         const bool isGoodMove =
             history[forWhitesInteger][move.from][move.to] > HISTORY_GOOD;
 
-        // Not reduce if bucket is: TT, checks, good capture, killer or
-        // promotion
-        if (bucket <= BucketEnum::PROMOTIONS || inCheck || moveIndex == 0 ||
-            isGoodMove || depth < 2) {
+        const bool noReduce = bucket == BucketEnum::TT || bucket == CHECKS ||
+                              bucket == GOOD_CAPTURES || bucket == PROMOTIONS ||
+                              inCheck || moveIndex == 0 || isGoodMove ||
+                              depth < 2;
+        if (noReduce) {
           score = -negamax<nodeType>(-beta, -alpha, depth - 1, ply + 1);
         } else {
           score = -negamax<NodeType::NonPV>(
