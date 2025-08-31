@@ -183,7 +183,7 @@ private:
   [[nodiscard]] auto negamax(std::int32_t alpha, std::int32_t beta,
                              std::uint8_t depth, std::uint8_t ply)
       -> std::int32_t;
-  [[nodiscard]] auto quiescene(std::int32_t alpha, std::int32_t beta,
+  [[nodiscard]] auto quiescence(std::int32_t alpha, std::int32_t beta,
                                std::uint8_t ply) -> std::int32_t;
 
   void popZobristHistory() {

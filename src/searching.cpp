@@ -254,7 +254,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   const auto forWhitesInteger = static_cast<const std::uint8_t>(forWhites);
 
   if (depth == 0) {
-    return quiescene(alpha, beta, ply);
+    return quiescence(alpha, beta, ply);
   }
 
   seldepth = std::max(seldepth, static_cast<std::uint64_t>(ply));
@@ -411,7 +411,7 @@ Searching::negamax<NodeType::PV>(std::int32_t alpha, std::int32_t beta,
                                  std::uint8_t depth, std::uint8_t ply)
     -> std::int32_t;
 
-[[nodiscard]] auto Searching::quiescene(std::int32_t alpha, std::int32_t beta,
+[[nodiscard]] auto Searching::quiescence(std::int32_t alpha, std::int32_t beta,
                                         const std::uint8_t ply)
     -> std::int32_t {
   const bool forWhites = board.whiteToMove;
@@ -455,7 +455,7 @@ Searching::negamax<NodeType::PV>(std::int32_t alpha, std::int32_t beta,
 
       std::int32_t score = -INF;
       if (!board.isKingInCheck(forWhites)) {
-        score = -quiescene(-beta, -alpha, ply + 1);
+        score = -quiescence(-beta, -alpha, ply + 1);
       }
 
       undoMove(board, undo);
