@@ -68,8 +68,9 @@ void MoveGenerator::generatePseudoLegal(const bool onlyKills,
       const auto fromSquare =
           static_cast<std::int8_t>(std::countr_zero(typeBitboard));
       const std::uint64_t enemyFlatWithEnPassant =
-          type == Piece::PAWN ? enemyFlat | (1ULL << board.enPassantSquare)
-                              : enemyFlat;
+          type == Piece::PAWN && board.enPassantSquare != 0
+              ? enemyFlat | (1ULL << board.enPassantSquare)
+              : enemyFlat;
       Move pseudoLegalMoves = (Move){0, 0};
       if (onlyKills) {
         pseudoLegalMoves.kills =
