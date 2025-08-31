@@ -31,8 +31,7 @@ struct TTEntry {
 class TranspositionTable {
 public:
   TranspositionTable() { table.resize(TT_SIZE); }
-
-  std::uint64_t usedEntries = 0;
+  std::vector<TTEntry> table;
 
   [[nodiscard]] auto probe(const std::uint64_t key) const -> const TTEntry * {
     const TTEntry *entry = &table[key & INDEX_MASK];
@@ -46,11 +45,15 @@ public:
 
   void store(const TTEntry &newEntry) {
     TTEntry *entry = &table[newEntry.key & INDEX_MASK];
+
+    // If slot is empty
     if (entry->key == UINT64_MAX) {
-      usedEntries++;
       *entry = newEntry;
+      return;
     }
-    if (newEntry.depth >= entry->depth) {
+
+    // Replace if deeper or always if it's a different position
+    if (newEntry.depth >= entry->depth || entry->key != newEntry.key) {
       *entry = newEntry;
     }
   }
@@ -58,13 +61,12 @@ public:
   void clear() {
     table.clear();
     table.resize(TT_SIZE);
-    usedEntries = 0;
   }
 
   static auto size() -> std::size_t { return TT_SIZE; }
 
 private:
-  static constexpr std::size_t TT_SIZE_MB = 64;
+  static constexpr std::size_t TT_SIZE_MB = 32;
   static constexpr std::size_t MB_TO_BYTE_SCALE_FACTOR = 1048576;
 
   static constexpr std::size_t TT_SIZE_BYTES =
@@ -74,8 +76,6 @@ private:
       std::bit_floor(TT_SIZE_BYTES / sizeof(TTEntry));
 
   static const std::uint64_t INDEX_MASK = TT_SIZE - 1;
-
-  std::vector<TTEntry> table;
 };
 
 constexpr std::array<std::int32_t, Piece::NOTHING + 1> PIECE_VALUES = {

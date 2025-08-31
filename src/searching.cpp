@@ -139,16 +139,23 @@ auto Searching::iterativeDeepening(const std::uint64_t timeLimitMs) -> MoveCTX {
           static_cast<double>(nowMs() - startingTime) / 1000;
       const double nps = static_cast<double>(nodes) / elapsedTimeSeconds;
 
-      static constexpr std::uint16_t HASHFULL_MULTIPLIER = 1000;
+      constexpr std::uint16_t SAMPLED_ENTRIES = 1000;
+      std::uint16_t count = 0;
+      for (std::uint64_t i = 0; i < SAMPLED_ENTRIES; i++) {
+        std::size_t idx = (i * TranspositionTable::size()) / SAMPLED_ENTRIES;
+        if (TT.table[idx].key != UINT64_MAX) {
+          count++;
+        }
+      }
+
+      static constexpr std::uint32_t HASHFULL_SCALE = 1000;
 
       std::cout << "info depth " << static_cast<std::uint64_t>(depth)
                 << " seldepth " << seldepth << " score cp " << bestScore
                 << " nodes " << nodes << " nps "
                 << static_cast<std::uint64_t>(nps) << " hashfull "
-                << static_cast<std::uint64_t>(
-                       static_cast<double>(TT.usedEntries) /
-                       static_cast<double>(TranspositionTable::size()) *
-                       HASHFULL_MULTIPLIER)
+                << static_cast<std::uint64_t>(count * HASHFULL_SCALE) /
+                       SAMPLED_ENTRIES
                 << " pv " << moveToUCI(bestMove) << '\n';
       std::flush(std::cout);
     } else {
