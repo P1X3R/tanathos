@@ -362,7 +362,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         }
         alpha = std::max(score, alpha);
 
-        if (nowMs() >= endTime) {
+        if ((nodes & TIMEOUT_CHECKING) == 0 && nowMs() >= endTime) {
           return 0;
         }
 
