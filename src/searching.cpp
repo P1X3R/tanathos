@@ -284,7 +284,9 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
 
   const std::int32_t staticEvaluation =
       forWhites ? board.evaluate() : -board.evaluate();
-  if (nowMs() >= endTime) {
+
+  static constexpr std::uint32_t TIMEOUT_CHECKING = 1024;
+  if ((nodes & TIMEOUT_CHECKING) == 0 && nowMs() >= endTime) {
     return staticEvaluation;
   }
 
