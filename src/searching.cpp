@@ -175,7 +175,7 @@ auto Searching::search(const std::uint8_t depth)
   std::int32_t bestScore = -INF;
   const bool forWhites = board.whiteToMove;
 
-  static constexpr std::uint8_t BASE_DELTA = 30;
+  static constexpr std::uint8_t BASE_DELTA = 50;
   std::uint8_t delta = BASE_DELTA;
   std::int32_t alpha;
   std::int32_t beta;
