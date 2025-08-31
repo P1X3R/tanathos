@@ -3,6 +3,7 @@
 #include "bitboard.h"
 #include "board.h"
 #include "legalMoves.h"
+#include "move.h"
 #include "zobrist.h"
 #include <bit>
 #include <cstddef>
@@ -190,4 +191,20 @@ private:
         (zobristHistoryIndex + ZOBRIST_HISTORY_SIZE - 1) % ZOBRIST_HISTORY_SIZE;
     zobristHistory[zobristHistoryIndex] = ~0ULL;
   }
+
+  struct ScopedUndo {
+    ChessBoard &board;
+    Searching &search;
+    const UndoCTX undo;
+
+    ScopedUndo(ChessBoard &_board, const MoveCTX &_move, Searching &_search)
+        : board(_board), search(_search), undo(_move, _board) {
+      makeMove(board, _move);
+      search.appendZobristHistory();
+    }
+    ~ScopedUndo() {
+      undoMove(board, undo);
+      search.popZobristHistory();
+    }
+  };
 };

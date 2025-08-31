@@ -2,6 +2,7 @@
 #include "board.h"
 #include "legalMoves.h"
 #include "luts.h"
+#include "psqt.h"
 #include "searching.h"
 #include "sysifus.h"
 #include <algorithm>
@@ -326,6 +327,16 @@ void MoveGenerator::sort(const MoveCTX *entryBestMove, const std::uint8_t ply,
         return (*history)[forWhites][first.from][first.to] >
                (*history)[forWhites][second.from][second.to];
       });
+  std::ranges::sort(buckets[BucketEnum::QUIET], [&](const MoveCTX &first,
+                                                    const MoveCTX &second) {
+    return PSQT[first.promotion != Piece::NOTHING ? first.promotion
+                                                  : first.original]
+               [forWhites ? first.to ^ (BOARD_AREA - BOARD_LENGTH) : first.to] >
+           PSQT[second.promotion != Piece::NOTHING ? second.promotion
+                                                   : second.original]
+               [forWhites ? second.to ^ (BOARD_AREA - BOARD_LENGTH)
+                          : second.to];
+  });
 
   pseudoLegal.clear();
 }

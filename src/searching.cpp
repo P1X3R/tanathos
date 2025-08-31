@@ -1,7 +1,6 @@
 #include "searching.h"
 #include "board.h"
 #include "legalMoves.h"
-#include "move.h"
 #include "sysifus.h"
 #include <algorithm>
 #include <cassert>
@@ -292,26 +291,21 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   generator.appendCastling(board, forWhites);
   generator.sort(entryBestMove, ply, forWhites);
 
-  const std::int32_t mateScore = CHECKMATE_SCORE - ply; // Mate in N
-
   bool hasLegalMoves = false;
   std::uint8_t moveIndex = 0;
   for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
        ++bucket) {
     for (const MoveCTX &move : generator.buckets[bucket]) {
-      const UndoCTX undo(move, board);
-      makeMove(board, move);
-      appendZobristHistory();
+      ScopedUndo guard(board, move, *this);
 
       if (!board.isKingInCheck(forWhites)) {
         hasLegalMoves = true;
+        moveIndex++;
 
         const bool isQuiet = bucket == QUIET || bucket == KILLERS ||
                              bucket == HISTORY_HEURISTICS;
         if (canFutilityPrune && staticEvaluation + FUTILITY_MARGIN < alpha &&
             isQuiet) {
-          undoMove(board, undo);
-          popZobristHistory();
           continue;
         }
 
@@ -341,18 +335,7 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
         }
         alpha = std::max(score, alpha);
 
-        if (mateScore < beta) {
-          beta = mateScore;
-          if (alpha >= mateScore) {
-            undoMove(board, undo);
-            popZobristHistory();
-            return -mateScore;
-          }
-        }
-
         if (nowMs() >= endTime) {
-          undoMove(board, undo);
-          popZobristHistory();
           return 0;
         }
 
@@ -370,15 +353,9 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
             entry = (entry > UINT16_MAX - bonus) ? UINT16_MAX : entry + bonus;
           }
 
-          undoMove(board, undo);
-          popZobristHistory();
           goto searchEnd;
         }
       }
-
-      undoMove(board, undo);
-      popZobristHistory();
-      moveIndex++;
     }
   }
 

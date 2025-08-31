@@ -1,10 +1,12 @@
+#pragma once
+
 #include "bitboard.h"
 #include "sysifus.h"
 #include <array>
 #include <cstdint>
 
 // NOLINTBEGIN
-std::array<std::array<std::int32_t, BOARD_AREA>, Piece::KING + 1> PSQT =
+static std::array<std::array<std::int32_t, BOARD_AREA>, Piece::KING + 1> PSQT =
     {
         std::array<std::int32_t, BOARD_AREA>{
             0,  0,  0,  0,   0,   0,  0,  0,  50, 50, 50,  50, 50, 50,  50, 50,
