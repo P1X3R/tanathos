@@ -10,21 +10,19 @@
 #include <iostream>
 #include <ostream>
 
-static constexpr std::uint8_t REDUCTION_MAX_DEPTH = 13;
 static constexpr std::uint8_t REDUCTION_MAX_MOVE_INDEX = 218;
 static const std::array<std::array<std::uint8_t, REDUCTION_MAX_MOVE_INDEX>,
-                        REDUCTION_MAX_DEPTH>
+                        MAX_SEARCHING_DEPTH>
     REDUCTION_TABLE = []() {
       std::array<std::array<std::uint8_t, REDUCTION_MAX_MOVE_INDEX>,
-                 REDUCTION_MAX_DEPTH>
+                 MAX_SEARCHING_DEPTH>
           result;
 
-      for (std::uint32_t depth = 0; depth < REDUCTION_MAX_DEPTH; depth++) {
-        for (std::uint32_t moveIndex = 0; moveIndex < REDUCTION_MAX_MOVE_INDEX;
+      for (std::int32_t depth = 0; depth < MAX_SEARCHING_DEPTH; depth++) {
+        for (std::int32_t moveIndex = 0; moveIndex < REDUCTION_MAX_MOVE_INDEX;
              moveIndex++) {
-          const std::uint32_t reduction =
-              1 +
-              static_cast<std::uint32_t>(std::log2(moveIndex + 1) * depth / 3);
+          const std::uint32_t reduction = static_cast<std::uint8_t>(
+              0.99 + (log(moveIndex + 1) * log(depth + 1) / 3.14));
 
           result[depth][moveIndex] = reduction;
         }
