@@ -263,6 +263,25 @@ auto Searching::negamax(std::int32_t alpha, std::int32_t beta,
   if (board.isDraw(zobristHistory)) {
     return 0;
   }
+
+  // Mate distance pruning
+  const std::int32_t mateScore = CHECKMATE_SCORE - ply; // Mate in N
+  if (mateScore < beta) {
+    beta = mateScore;
+    if (alpha >= beta) {
+      return beta;
+    }
+  }
+
+  // Opponent mate in the next move
+  const std::int32_t mateThreat = -CHECKMATE_SCORE + ply + 1;
+  if (alpha < mateThreat) {
+    alpha = mateThreat;
+    if (alpha >= beta) {
+      return alpha;
+    }
+  }
+
   const std::int32_t staticEvaluation =
       forWhites ? board.evaluate() : -board.evaluate();
   if (nowMs() >= endTime) {
