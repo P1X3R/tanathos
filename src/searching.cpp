@@ -432,18 +432,19 @@ Searching::negamax<NodeType::PV>(std::int32_t alpha, std::int32_t beta,
     return bestValue;
   }
 
-  const bool isInCheck = board.isKingInCheck(forWhites);
+  const bool inCheck = board.isKingInCheck(forWhites);
 
   const TTEntry *entry = TT.probe(board.zobrist);
 
-  // This generates only pseudo-legal kills, that's why's the `true` flag there
+  // This generates only pseudo-legal kills if king isn't in check, generate all
+  // of them if it is though, that's why `!inCheck` is there
   MoveGenerator generator(killers, history, board);
-  generator.generatePseudoLegal(!isInCheck, forWhites);
+  generator.generatePseudoLegal(!inCheck, forWhites);
   generator.sort(entry != nullptr ? &entry->bestMove : nullptr, ply, forWhites);
 
   for (BucketEnum bucket = BucketEnum::TT; bucket <= BucketEnum::QUIET;
        ++bucket) {
-    if (!isInCheck && bucket != GOOD_CAPTURES) {
+    if (!inCheck && bucket != GOOD_CAPTURES) {
       continue;
     }
 
